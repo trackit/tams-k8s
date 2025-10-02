@@ -1,0 +1,9 @@
+apiVersion: trackit.io/v1
+kind: TAMS
+metadata:
+  name: simple-store
+spec:
+  backend:
+    s3:
+#      region: us-west-3
+      bucket: k8s-tams-test

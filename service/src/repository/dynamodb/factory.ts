@@ -1,0 +1,99 @@
+import { log } from '@tams-k8s/logger';
+import {
+    CreateTableCommand,
+    DescribeTableCommand,
+    DynamoDBClient,
+    ResourceNotFoundException
+} from '@aws-sdk/client-dynamodb';
+import e from "express";
+import { config } from "winston";
+
+import type { DynamoDBConfig } from '../../config';
+import  { Factory } from "../factory";
+import  { FlowRepository } from "../flows";
+import { ServiceRepository } from "../service";
+import { DDBFlowsImpl } from "./flows";
+import { DDBServiceImpl } from "./service";
+
+export class DDBRepositoryFactory implements Factory {
+    private readonly config: DynamoDBConfig;
+    private readonly client;
+
+    constructor(config: DynamoDBConfig) {
+        this.config = config;
+        this.client = new DynamoDBClient({
+            region: config.region,
+            endpoint: config.endpoint
+        });
+    }
+
+    private async createFlowTable() {
+        await this.client.send(new CreateTableCommand({
+            TableName: this.config.flowTtableName,
+            AttributeDefinitions: [{
+                AttributeName: 'flowId',
+                AttributeType: 'S'
+            }],
+            KeySchema: [{
+                AttributeName: 'flowId',
+                KeyType: 'HASH'
+            }],
+            BillingMode: 'PAY_PER_REQUEST'
+        }))
+    }
+
+    private async createServiceTable() {
+        await this.client.send(new CreateTableCommand({
+            TableName: this.config.serviceTableName,
+            AttributeDefinitions: [{
+                AttributeName: 'serviceKey',
+                AttributeType: 'S'
+            }],
+            KeySchema: [{
+                AttributeName: 'serviceKey',
+                KeyType: 'HASH'
+            }],
+            BillingMode: 'PAY_PER_REQUEST'
+        }))
+    }
+
+    async initialize() {
+        // ensure service table exists
+        try {
+            await this.client.send(new DescribeTableCommand({
+                TableName: this.config.serviceTableName,
+            }));
+        } catch (e) {
+            if (e instanceof ResourceNotFoundException) {
+                log.info('Service table not found, creating...', { tableName: this.config.serviceTableName });
+                await this.createServiceTable();
+                log.info('Service table created', { tableName: this.config.serviceTableName });
+            } else {
+                log.error('Could not verify service table existence', { tableName: this.config.serviceTableName }, e);
+            }
+        }
+        // ensure flow table exists
+        try {
+            await this.client.send(new DescribeTableCommand({
+                TableName: this.config.flowTtableName,
+            }));
+        } catch (e) {
+            if (e instanceof ResourceNotFoundException) {
+                log.info('Flow table not found, creating...', { tableName: this.config.flowTtableName });
+                await this.createFlowTable();
+                log.info('Flow table created', { tableName: this.config.flowTtableName });
+            } else {
+                log.error('Could not verify flow table existence', { tableName: this.config.flowTtableName }, e);
+                throw e;
+            }
+        }
+    }
+
+    getFlowRepository(): FlowRepository {
+        return new DDBFlowsImpl(this.client, this.config);
+    };
+
+    getServiceRepository(): ServiceRepository {
+        return new DDBServiceImpl(this.client, this.config);
+    }
+}
