@@ -10,10 +10,12 @@ export const readConfig = (): Config => {
         // database: {
         //     type: 'memory'
         // },
-        backend: {
+        backends: [{
             type: 's3',
-            bucket: 'k8s-tams-test'
-        },
+            id: 'bucket',
+            bucketName: 'k8s-tams-test',
+            default: true,
+        }],
         logs: {
             level: 'debug'
         }

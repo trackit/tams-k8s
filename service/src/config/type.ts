@@ -14,9 +14,13 @@ export interface MemoryDBConfig {
 export type DBConfig = DynamoDBConfig | MemoryDBConfig;
 
 // Backend config
-export interface S3BackendConfig {
+interface CommonBackendConfig {
+    id: string;
+    default?: boolean;
+}
+export interface S3BackendConfig extends CommonBackendConfig {
     type: 's3'
-    bucket: string
+    bucketName: string
     region?: string
     endpoint?: string
 }
@@ -30,6 +34,6 @@ export interface LogConfig {
 
 export interface Config {
     database: DBConfig;
-    backend: BackendConfig;
+    backends: BackendConfig[];
     logs: LogConfig
 }

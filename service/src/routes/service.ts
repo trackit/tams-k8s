@@ -1,32 +1,24 @@
 import { Request, Response } from 'express'
+import { ValidatedRequest } from "express-joi-validation";
 import Joi from "joi";
+import { GetServiceResponse, GetStorageBackendsResponse, PostServiceRequest } from "@tams-k8s/api";
+import { BackendManager } from "../backend/manager";
 import { RepositoriesBuilder } from "../repository/builder";
 import { Routes } from "./generic";
-import { validator } from "./validationErrorHandler";
+import { BodySchema, validator } from "./validationHelper";
 
-export interface GetServiceResponse {
-    name: string;
-    description: string;
-    api_version: string;
-    service_version: string;
-}
-
-export interface UpdateServiceRequest {
-    name: string;
-    description?: string;
-}
-
-const updateServiceRequestValidator = Joi.object<UpdateServiceRequest>({
+const updateServiceRequestValidator = Joi.object<PostServiceRequest>({
     name: Joi.string().required(),
     description: Joi.string(),
 }).required();
 
 export class ServiceRoutes extends Routes {
-    constructor(repositories: RepositoriesBuilder) {
-        super(repositories);
+    constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+        super(repositories, backends);
 
         this.route.get('/', this.get.bind(this));
         this.route.post('/', validator.body(updateServiceRequestValidator), this.update.bind(this));
+        this.route.get('/storage-backends', this.getStorageBackends.bind(this));
     }
 
     private async get(_: Request, res: Response<GetServiceResponse>) {
@@ -36,16 +28,34 @@ export class ServiceRoutes extends Routes {
             name,
             description,
             api_version: '1.0',
-            service_version: 'tams.1.10.0-da88b8b'
+            service_version: 'tams.7.0-b831a15',
+            type: 'urn:x-tams:service.example',
+            event_stream_mechanisms: []
         })
     }
 
-    private async update(req: Request<any, any, UpdateServiceRequest>, res: Response) {
+    private async update(req: ValidatedRequest<BodySchema<PostServiceRequest>>, res: Response) {
         const serviceRepo = this.repositories.getServiceRepository();
         await serviceRepo.updateService({
             name: req.body.name,
-            description: req.body.description || '',
+            description: req.body.description,
         });
         res.sendStatus(204);
+    }
+
+    private async getStorageBackends(_: Request, res: Response<GetStorageBackendsResponse>) {
+        res.json(await Promise.all(this.backends.getBackends().map(async (backend) => {
+            const info = await backend.getBucketInformation();
+            return {
+                id: backend.getId(),
+                label: info.label,
+                provider: info.provider,
+                store_type: info.storeType,
+                store_product: info.storeProduct,
+                region: info.region,
+                availability_zone: info.availabilityZone,
+                ...(backend.isDefault() ? { default_storage: true } : {})
+            }
+        })));
     }
 }

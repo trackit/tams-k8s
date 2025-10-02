@@ -1,9 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import { createValidator } from "express-joi-validation";
+import { ContainerTypes, createValidator, ValidatedRequestSchema } from "express-joi-validation";
 
 export const validator = createValidator({ passError: true });
 
-export const validationErrorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
+export const validationHelper = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (err && err.error && err.error.isJoi) {
         res.status(400).json({
             type: err.type,
@@ -12,4 +12,8 @@ export const validationErrorHandler = (err: any, req: Request, res: Response, ne
     } else {
         next(err);
     }
+}
+
+export interface BodySchema<T> extends ValidatedRequestSchema {
+    [ContainerTypes.Body]: T
 }

@@ -35,7 +35,7 @@ export class DDBServiceImpl implements ServiceRepository {
     }
 
     async updateService(next: ServiceUpdate): Promise<void> {
-        const resp = await this.client.send(new PutItemCommand({
+        await this.client.send(new PutItemCommand({
             TableName: this.config.serviceTableName,
             Item: marshall({
                 serviceKey: 'service',
