@@ -17,3 +17,7 @@ export const validationHelper = (err: any, req: Request, res: Response, next: Ne
 export interface BodySchema<T> extends ValidatedRequestSchema {
     [ContainerTypes.Body]: T
 }
+
+export interface QSSchema<T> extends ValidatedRequestSchema {
+    [ContainerTypes.Query]: T
+}
