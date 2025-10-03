@@ -1,11 +1,12 @@
+import Joi from "joi";
 import { Response } from "express";
-import { FormatUrn, GetFlowsQueryParamsRequest, timerangeRegex, Flow } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
+import { Flow, flowValidator, FormatUrn, GetFlowsQueryParamsRequest, timerangeRegex } from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
 import { RepositoriesBuilder } from "../repository/builder";
+import { BadRequestHttpError, HttpError } from "./errorHelper";
 import { Routes } from "./generic";
-import { QSSchema, validator } from "./validationHelper";
-import Joi from "joi";
+import { ParamsBodySchema, QSSchema, validator } from "./validationHelper";
 
 const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsRequest>({
     source_id: Joi.string(),
@@ -17,11 +18,19 @@ const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsRequest>({
     frame_height: Joi.number(),
 }).pattern(/^tag\..+$/, Joi.string()).pattern(/^tag_exists\..+$/, Joi.boolean());
 
+interface PutFlowParams {
+    flowId: string;
+}
+const putFlowsParamsValidator = Joi.object<PutFlowParams>({
+    flowId: Joi.string().uuid().required(),
+})
+
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
 
         this.route.get('/', validator.query(listFlowsQueryParamsValidator), this.listFlows.bind(this));
+        this.route.put<any, PutFlowParams>('/:flowId', validator.params(putFlowsParamsValidator), validator.body(flowValidator.required()), this.putFlow.bind(this));
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
@@ -55,12 +64,26 @@ export class FlowsRoutes extends Routes {
         });
         res.json(flows.map((flow) => ({
             id: flow.id,
+            format: FormatUrn.VIDEO,
+            codec: 'video/mp4',
             source_id: flow.sourceId,
             label: flow.label,
             description: flow.description,
             created_by: flow.createdBy,
             updated_by: flow.updatedBy,
             tags: flow.tags,
+            essence_parameters: {
+                frame_width: 1920,
+                frame_height: 1080,
+            }
         })));
+    }
+
+    private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowParams, Flow>>, res: Response) {
+        if (req.params.flowId !== req.body.id) {
+            throw new BadRequestHttpError( 'flow ID does not match URL parameter');
+        }
+        console.log(req.params.flowId);
+        res.sendStatus(204);
     }
 }
