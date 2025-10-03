@@ -72,78 +72,83 @@ export interface GetFlowsQueryParamsRequest {
 
 export interface Fraction {
     numerator: number;
+    denominator?: number;
+}
+
+export interface AspectRatio {
+    numerator: number;
     denominator: number;
 }
 
 export interface ContainerMapping {
-    track_index: number;
-    format_track_index: number;
-    audio_track: {
-        channel_numbers: number[];
-        channel_range: string;
+    track_index?: number;
+    format_track_index?: number;
+    audio_track?: {
+        channel_numbers?: number[];
+        channel_range?: string;
     };
-    mp2ts_container: {
-        pid: number;
+    mp2ts_container?: {
+        pid?: number;
     }
-    mxf_container: {
-        package_uid: string;
-        track_id: number;
+    mxf_container?: {
+        package_uid?: string;
+        track_id?: number;
     }
-    isobmff_container: {
-        track_id: number;
+    isobmff_container?: {
+        track_id?: number;
     }
 }
 
 export interface FlowCollectionItem {
     id: string;
     role: string;
-    container_mapping: ContainerMapping
+    container_mapping?: ContainerMapping
 }
 
 interface CommonFlow {
     id: string;
     source_id: string;
-    label: string;
-    description: string;
-    created_by: string;
-    updated_by: string;
-    tags: Record<string, string>;
-    metadata_version: string;
-    generation: number;
-    created: string | Date;
-    metadata_updated: string | Date;
-    segments_updated: string | Date;
-    read_only: boolean;
+    label?: string;
+    description?: string;
+    created_by?: string;
+    updated_by?: string;
+    tags?: Record<string, string>;
+    metadata_version?: string;
+    generation?: number;
+    created?: string | Date;
+    metadata_updated?: string | Date;
+    segments_updated?: string | Date;
+    read_only?: boolean;
     codec: string;
-    container: string;
-    avg_bit_rate: number;
-    max_bit_rate: number;
-    segment_duration: Fraction;
-    timerange: string;
-    flow_collection: FlowCollectionItem[];
-    collected_by: string[];
-    container_mapping: ContainerMapping;
+    container?: string;
+    avg_bit_rate?: number;
+    max_bit_rate?: number;
+    segment_duration?: Fraction;
+    timerange?: string;
+    flow_collection?: FlowCollectionItem[];
+    collected_by?: string[];
+    container_mapping?: ContainerMapping;
 }
 
 export interface VideoFlow extends CommonFlow {
     format: FormatUrn.VIDEO
     essence_parameters: {
-        frame_rate: Fraction;
+        frame_rate?: Fraction;
         frame_width: number;
         frame_height: number;
-        bit_depth: number;
-        interlace_mode: InterlaceMode;
-        colorspace: ColorSpace;
-        transfer_characteristics: TransferCharacteristics;
-        aspect_ratio: Fraction;
-        pixel_aspect_ration: Fraction;
-        component_type: ComponentType;
-        horiz_chroma_subs: number;
-        vert_chroma_subs: number;
-        unc_parameters: {
+        bit_depth?: number;
+        interlace_mode?: InterlaceMode;
+        colorspace?: ColorSpace;
+        transfer_characteristics?: TransferCharacteristics;
+        aspect_ratio?: AspectRatio;
+        pixel_aspect_ratio?: AspectRatio;
+        component_type?: ComponentType;
+        horiz_chroma_subs?: number;
+        vert_chroma_subs?: number;
+        unc_parameters?: {
             unc_type: string;
         }
-        avc_parameters: {
+        avc_parameters?: {
             profile: number;
             level: number;
             flags: number;
@@ -156,12 +161,12 @@ export interface AudioFlow extends CommonFlow {
     essence_parameters: {
         sample_rate: number;
         channels: number;
-        bit_depth: number;
-        codec_parameters: {
-            coded_frame_size: number;
-            mp4_oti: number;
+        bit_depth?: number;
+        codec_parameters?: {
+            coded_frame_size?: number;
+            mp4_oti?: number;
         }
-        unc_parameters: {
+        unc_parameters?: {
             unc_type: AudioUNCType;
         }
     }
@@ -172,14 +177,14 @@ export interface ImageFlow extends CommonFlow {
     essence_parameters: {
         frame_width: number;
         frame_height: number;
-        aspect_ratio: Fraction;
+        aspect_ratio?: AspectRatio;
     }
 }
 
 export interface DataFlow extends CommonFlow {
     format: FormatUrn.DATA;
     essence_parameters: {
-        data_type: string;
+        data_type?: string;
     }
 }
 
