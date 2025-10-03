@@ -3,6 +3,7 @@ import { log } from "@tams-k8s/logger";
 import { BackendManager } from "./backend/manager";
 import { readConfig } from "./config/reader";
 import { RepositoriesBuilder } from "./repository/builder";
+import { errorHandler } from "./routes/errorHelper";
 import { FlowsRoutes } from "./routes/flows";
 import { RootRoutes } from "./routes/root";
 import { ServiceRoutes } from "./routes/service";
@@ -34,6 +35,7 @@ const main = async () => {
     app.use('/flows', flowRoutes.getRoutes());
 
     app.use(validationHelper);
+    app.use(errorHandler);
 
     app.listen(PORT, () => log.info(`Server is running on port ${PORT}`));
 };
