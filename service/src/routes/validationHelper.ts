@@ -1,15 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import { ContainerTypes, createValidator, ValidatedRequestSchema } from "express-joi-validation";
+import { log } from '@tams-k8s/logger';
 
 export const validator = createValidator({ passError: true });
 
 export const validationHelper = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (err && err.error && err.error.isJoi) {
-        res.status(400).json({
-            type: 'validation_error',
-            where: err.type,
-            message: err.error.toString()
-        });
+        if (err.type === 'response') {
+            log.error('Response validation error', { error: err.error, details: err.error.details });
+            res
+                .status(500)
+                .header({ 'Content-Type': 'application/json' })
+                .send(JSON.stringify({ message: 'response validation error' }));
+        } else {
+            res.status(400).json({
+                type: 'validation_error',
+                where: err.type,
+                message: err.error.toString()
+            });
+        }
     } else {
         next(err);
     }

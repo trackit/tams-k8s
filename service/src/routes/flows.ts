@@ -1,7 +1,14 @@
 import Joi from "joi";
 import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
-import { Flow, flowValidator, FormatUrn, GetFlowsQueryParamsRequest, timerangeRegex } from "@tams-k8s/api";
+import {
+    Flow,
+    flowsValidator,
+    flowValidator,
+    FormatUrn,
+    GetFlowsQueryParamsRequest,
+    timerangeRegex
+} from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
@@ -30,8 +37,8 @@ export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
 
-        this.route.get('/', validator.query(listFlowsQueryParamsValidator), this.listFlows.bind(this));
-        this.route.put<any, PutFlowParams>('/:flowId', validator.params(putFlowsParamsValidator), validator.body(flowValidator.required()), this.putFlow.bind(this));
+        this.route.get('/', validator.query(listFlowsQueryParamsValidator), validator.response(flowsValidator), this.listFlows.bind(this));
+        this.route.put<any, PutFlowParams>('/:flowId', validator.params(putFlowsParamsValidator), validator.body(flowValidator.required()), validator.response(flowValidator.required()), this.putFlow.bind(this));
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {

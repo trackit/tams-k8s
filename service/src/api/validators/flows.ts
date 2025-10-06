@@ -124,3 +124,5 @@ export const flowValidator = Joi.object<Flow>({
         otherwise: Joi.forbidden(),
     })
 });
+
+export const flowsValidator = Joi.array().items(flowValidator);
