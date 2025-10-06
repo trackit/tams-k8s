@@ -53,7 +53,7 @@ export class DDBFlowsImpl implements FlowRepository {
     private recordToFlow(record: Record<string, AttributeValue>): Flow {
         const data = unmarshall(record);
         return {
-            flowId: data.id,
+            flowId: data.flowId,
             sourceId: data.sourceId,
             label: data.label,
             description: data.description,
@@ -62,9 +62,9 @@ export class DDBFlowsImpl implements FlowRepository {
             tags: data.tags,
             metadataVersion: data.metadataVersion,
             generation: data.generation,
-            created: new Date(data.created),
-            metadataUpdated: new Date(data.metadataUpdated),
-            segmentsUpdated: new Date(data.segmentsUpdated),
+            created: data.created ? new Date(data.created) : undefined,
+            metadataUpdated: data.metadataUpdated ? new Date(data.metadataUpdated) : undefined,
+            segmentsUpdated: data.segmentsUpdated ? new Date(data.segmentsUpdated) : undefined,
             readOnly: data.readOnly,
             codec: data.codec,
             container: data.container,
@@ -76,6 +76,7 @@ export class DDBFlowsImpl implements FlowRepository {
             collectedBy: data.collectedBy,
             containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
             format: data.format,
+            essenceParameters: data.essenceParameters,
         }
     }
 

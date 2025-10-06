@@ -1,46 +1,43 @@
-import Joi from "joi";
 import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
 import {
     Flow,
     flowsValidator,
     flowValidator,
-    FormatUrn,
+    GetFlowPathParams,
+    getFlowPathParamsValidator,
+    GetFlowQueryParamsRequest,
     GetFlowsQueryParamsRequest,
-    timerangeRegex
+    listFlowsQueryParamsValidator,
+    PutFlowPathParams,
+    putFlowPathParamsValidator,
 } from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
-import { BadRequestHttpError, ConflictHttpError, HttpError } from "./errorHelper";
+import { BadRequestHttpError, ConflictHttpError, NotFoundHttpError } from "./errorHelper";
 import { Routes } from "./generic";
-import { ParamsBodySchema, QSSchema, validator } from "./validationHelper";
-
-const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsRequest>({
-    source_id: Joi.string(),
-    timerange: Joi.string().regex(timerangeRegex),
-    format: Joi.string().valid(...Object.values(FormatUrn)),
-    codec: Joi.string(),
-    label: Joi.string(),
-    frame_width: Joi.number(),
-    frame_height: Joi.number(),
-}).pattern(/^tag\..+$/, Joi.string()).pattern(/^tag_exists\..+$/, Joi.boolean());
-
-interface PutFlowParams {
-    flowId: string;
-}
-const putFlowsParamsValidator = Joi.object<PutFlowParams>({
-    flowId: Joi.string().uuid().required(),
-})
+import { ParamsBodySchema, ParamsQSSchema, QSSchema, validator } from "./validationHelper";
 
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
 
-        this.route.get('/', validator.query(listFlowsQueryParamsValidator), validator.response(flowsValidator), this.listFlows.bind(this));
+        this.route.get(
+            '/',
+            validator.query(listFlowsQueryParamsValidator),
+            validator.response(flowsValidator),
+            this.listFlows.bind(this),
+        );
+        this.route.get<any, Flow>(
+            '/:flowId',
+            validator.params(getFlowPathParamsValidator),
+            validator.response(flowValidator.required()),
+            this.getFlow.bind(this)
+        );
         this.route.put<any, Flow>(
             '/:flowId',
-            validator.params(putFlowsParamsValidator),
+            validator.params(putFlowPathParamsValidator),
             validator.body(flowValidator.required()),
             validator.response(flowValidator.required()),
             this.putFlow.bind(this),
@@ -79,7 +76,14 @@ export class FlowsRoutes extends Routes {
         res.json(flows.map((flow) => (FlowAdapter.toApi(flow))));
     }
 
-    private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowParams, Flow>>, res: Response<Flow>) {
+    private async getFlow(req: ValidatedRequest<ParamsQSSchema<GetFlowPathParams, GetFlowQueryParamsRequest>>, res: Response<Flow>) {
+        const flowRepository = this.repositories.getFlowRepository();
+        const flow = await flowRepository.getFlowById(req.params.flowId);
+        if (flow === null) throw new NotFoundHttpError('Flow could not be found');
+        res.json(FlowAdapter.toApi(flow));
+    }
+
+    private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowPathParams, Flow>>, res: Response<Flow>) {
         if (req.params.flowId !== req.body.id) {
             throw new BadRequestHttpError( 'flow ID does not match URL parameter');
         }
@@ -88,17 +92,17 @@ export class FlowsRoutes extends Routes {
         const flowToPut = FlowAdapter.fromApi(req.body);
         const now = new Date();
 
-        // protect readonly fields
+        // protect readonly flow
         if (currentFlow?.readOnly === true && (flowToPut.readOnly === true || flowToPut.readOnly === undefined)) {
             throw new ConflictHttpError('Flow is in read only');
         }
-        // updated created if flow does not exist
-        if (currentFlow === null) {
-            flowToPut.created = now;
-        } else {
-            flowToPut.created = currentFlow.created;
-        }
+
+        // updated readonly fields
+        flowToPut.created = currentFlow?.created || now;
         flowToPut.metadataUpdated = now;
+        flowToPut.segmentDuration = currentFlow?.segmentDuration || undefined;
+        flowToPut.generation = currentFlow?.generation || undefined;
+
         const flow = await flowRepository.putFlow(flowToPut);
         res.json(FlowAdapter.toApi(flow));
     }

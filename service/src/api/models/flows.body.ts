@@ -56,20 +56,6 @@ export enum AudioUNCType {
     PAIRS = 'pairs',
 }
 
-export interface GetFlowsQueryParamsRequest {
-    source_id?: string;
-    timerange: string;
-    format?: FormatUrn;
-    codec?: string;
-    label?: string;
-    frame_width?: number;
-    frame_height?: number;
-
-    [key: `tags.${string}`]: string;
-
-    [key: `tags_exists.${string}`]: string;
-}
-
 export interface Fraction {
     numerator: number;
     denominator?: number;

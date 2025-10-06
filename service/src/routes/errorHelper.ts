@@ -31,6 +31,12 @@ export class ConflictHttpError extends HttpError {
     }
 }
 
+export class NotFoundHttpError extends HttpError {
+    constructor(message?: string) {
+        super(404, message ? `Not found: ${message}` : 'Not found', 'not_found');
+    }
+}
+
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (err instanceof HttpError) {
         res

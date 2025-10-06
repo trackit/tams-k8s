@@ -36,6 +36,11 @@ export interface ParamsBodySchema<Params, Body> extends ValidatedRequestSchema {
     [ContainerTypes.Body]: Body
 }
 
+export interface ParamsQSSchema<Params, Query> extends ValidatedRequestSchema {
+    [ContainerTypes.Params]: Params
+    [ContainerTypes.Query]: Query
+}
+
 export interface QSSchema<T> extends ValidatedRequestSchema {
     [ContainerTypes.Query]: T
 }
