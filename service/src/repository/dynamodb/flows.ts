@@ -1,5 +1,5 @@
-import { AttributeValue, DynamoDBClient, ScanCommand } from "@aws-sdk/client-dynamodb";
-import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { AttributeValue, DynamoDBClient, GetItemCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
+import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { DynamoDBConfig } from "../../config";
 import type { ContainerMapping, Flow, FlowCollectionItem, FlowRepository, ListFlowsFilters } from "../flows.js";
 
@@ -41,10 +41,19 @@ export class DDBFlowsImpl implements FlowRepository {
         }
     }
 
+    private flowToRecord(flow: Flow): Record<string, AttributeValue> {
+        return marshall({
+            ...flow,
+            created: flow.created?.toString(),
+            metadataUpdated: flow.metadataUpdated?.toString(),
+            segmentsUpdated: flow.segmentsUpdated?.toString(),
+        }, { removeUndefinedValues: true });
+    }
+
     private recordToFlow(record: Record<string, AttributeValue>): Flow {
         const data = unmarshall(record);
         return {
-            id: data.id,
+            flowId: data.id,
             sourceId: data.sourceId,
             label: data.label,
             description: data.description,
@@ -129,7 +138,25 @@ export class DDBFlowsImpl implements FlowRepository {
         return this.recordsToFlow(resp.Items);
     }
 
-    putFlow(flow: Flow): Promise<Flow> {
-        return Promise.resolve(flow);
+    async getFlowById(flowId: string): Promise<Flow | null> {
+        const result = await this.client.send(new GetItemCommand({
+            TableName: this.config.flowTtableName,
+            Key: {
+                flowId: {
+                    S: flowId,
+                }
+            }
+        }));
+        if (!result.Item) return null;
+        return this.recordToFlow(result.Item);
+    }
+
+    async putFlow(flow: Flow): Promise<Flow> {
+        await this.client.send(new PutItemCommand({
+            TableName: this.config.flowTtableName,
+            ReturnValues: 'NONE',
+            Item: this.flowToRecord(flow),
+        }));
+        return flow;
     }
 }

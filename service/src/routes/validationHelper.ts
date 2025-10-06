@@ -13,11 +13,14 @@ export const validationHelper = (err: any, req: Request, res: Response, next: Ne
                 .header({ 'Content-Type': 'application/json' })
                 .send(JSON.stringify({ message: 'response validation error' }));
         } else {
-            res.status(400).json({
-                type: 'validation_error',
-                where: err.type,
-                message: err.error.toString()
-            });
+            res
+                .status(400)
+                .header({ 'Content-Type': 'application/json' })
+                .send(JSON.stringify({
+                    type: 'validation_error',
+                    where: err.type,
+                    message: err.error.toString()
+                }));
         }
     } else {
         next(err);

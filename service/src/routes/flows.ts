@@ -12,7 +12,7 @@ import {
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
-import { BadRequestHttpError, HttpError } from "./errorHelper";
+import { BadRequestHttpError, ConflictHttpError, HttpError } from "./errorHelper";
 import { Routes } from "./generic";
 import { ParamsBodySchema, QSSchema, validator } from "./validationHelper";
 
@@ -38,7 +38,13 @@ export class FlowsRoutes extends Routes {
         super(repositories, backends);
 
         this.route.get('/', validator.query(listFlowsQueryParamsValidator), validator.response(flowsValidator), this.listFlows.bind(this));
-        this.route.put<any, PutFlowParams>('/:flowId', validator.params(putFlowsParamsValidator), validator.body(flowValidator.required()), validator.response(flowValidator.required()), this.putFlow.bind(this));
+        this.route.put<any, Flow>(
+            '/:flowId',
+            validator.params(putFlowsParamsValidator),
+            validator.body(flowValidator.required()),
+            validator.response(flowValidator.required()),
+            this.putFlow.bind(this),
+        );
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
@@ -70,30 +76,30 @@ export class FlowsRoutes extends Routes {
             haveTags,
             doesNotHaveTags
         });
-        res.json(flows.map((flow) => ({
-            id: flow.id,
-            format: FormatUrn.VIDEO,
-            codec: 'video/mp4',
-            source_id: flow.sourceId,
-            label: flow.label,
-            description: flow.description,
-            created_by: flow.createdBy,
-            updated_by: flow.updatedBy,
-            tags: flow.tags,
-            essence_parameters: {
-                frame_width: 1920,
-                frame_height: 1080,
-            }
-        })));
+        res.json(flows.map((flow) => (FlowAdapter.toApi(flow))));
     }
 
-    private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowParams, Flow>>, res: Response) {
+    private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowParams, Flow>>, res: Response<Flow>) {
         if (req.params.flowId !== req.body.id) {
             throw new BadRequestHttpError( 'flow ID does not match URL parameter');
         }
-        const flowRepo = this.repositories.getFlowRepository();
-        // await flowRepo.putFlow(FlowAdapter.fromApi(req.body));
-        console.log(FlowAdapter.fromApi(req.body));
-        res.sendStatus(204);
+        const flowRepository = this.repositories.getFlowRepository();
+        const currentFlow = await flowRepository.getFlowById(req.params.flowId);
+        const flowToPut = FlowAdapter.fromApi(req.body);
+        const now = new Date();
+
+        // protect readonly fields
+        if (currentFlow?.readOnly === true && (flowToPut.readOnly === true || flowToPut.readOnly === undefined)) {
+            throw new ConflictHttpError('Flow is in read only');
+        }
+        // updated created if flow does not exist
+        if (currentFlow === null) {
+            flowToPut.created = now;
+        } else {
+            flowToPut.created = currentFlow.created;
+        }
+        flowToPut.metadataUpdated = now;
+        const flow = await flowRepository.putFlow(flowToPut);
+        res.json(FlowAdapter.toApi(flow));
     }
 }

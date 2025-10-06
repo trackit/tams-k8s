@@ -52,7 +52,7 @@ export interface ContainerMapping {
 }
 
 export interface CommonFlow {
-    id: string;
+    flowId: string;
     sourceId: string;
     label?: string;
     description?: string;
@@ -142,5 +142,6 @@ export type Flow = VideoFlow | AudioFlow | ImageFlow | DataFlow | MultiFlow;
 
 export interface FlowRepository {
     listFlows(filters?: ListFlowsFilters): Promise<Flow[]>;
+    getFlowById(flowId: string): Promise<Flow | null>;
     putFlow(flow: Flow): Promise<Flow>;
 }

@@ -9,6 +9,7 @@ export class HttpError extends Error {
         this.status = status;
         this.type = type;
     }
+
     get statusCode() {
         return this.status;
     }
@@ -24,16 +25,28 @@ export class BadRequestHttpError extends HttpError {
     }
 }
 
+export class ConflictHttpError extends HttpError {
+    constructor(message?: string) {
+        super(409, message ? `Conflict: ${message}` : 'Conflict', 'conflict');
+    }
+}
+
 export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (err instanceof HttpError) {
-        res.status(err.statusCode).json({
-            type: err.errorType,
-            message: err.message
-        });
+        res
+            .status(err.statusCode)
+            .header({ 'Content-Type': 'application/json' })
+            .send(JSON.stringify({
+                type: err.errorType,
+                message: err.message
+            }));
         return;
     }
-    res.status(500).json({
-        type: 'unknown_error',
-        message: err.message || 'Internal server error'
-    });
+    res
+        .status(500)
+        .header({ 'Content-Type': 'application/json' })
+        .send(JSON.stringify({
+            type: 'unknown_error',
+            message: err.message || 'Internal server error'
+        }));
 }
