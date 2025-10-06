@@ -105,7 +105,7 @@ export interface FlowCollectionItem {
     container_mapping?: ContainerMapping
 }
 
-interface CommonFlow {
+export interface CommonFlow {
     id: string;
     source_id: string;
     label?: string;

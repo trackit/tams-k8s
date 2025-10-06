@@ -3,6 +3,7 @@ import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
 import { Flow, flowValidator, FormatUrn, GetFlowsQueryParamsRequest, timerangeRegex } from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
+import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
 import { BadRequestHttpError, HttpError } from "./errorHelper";
 import { Routes } from "./generic";
@@ -83,7 +84,9 @@ export class FlowsRoutes extends Routes {
         if (req.params.flowId !== req.body.id) {
             throw new BadRequestHttpError( 'flow ID does not match URL parameter');
         }
-        console.log(req.params.flowId);
+        const flowRepo = this.repositories.getFlowRepository();
+        // await flowRepo.putFlow(FlowAdapter.fromApi(req.body));
+        console.log(FlowAdapter.fromApi(req.body));
         res.sendStatus(204);
     }
 }
