@@ -132,8 +132,8 @@ export class DDBFlowsImpl implements FlowRepository {
         const resp = await this.client.send(new ScanCommand({
             TableName: this.config.flowTtableName,
             FilterExpression: filterExpr.length === 0 ? undefined : filterExpr.join(' AND '),
-            ExpressionAttributeNames: exprAttrNames,
-            ExpressionAttributeValues: exprAttrVal
+            ExpressionAttributeNames: Object.keys(exprAttrNames).length ? exprAttrNames : undefined,
+            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined
         }))
         if (!resp.Items) return [];
         return this.recordsToFlow(resp.Items);

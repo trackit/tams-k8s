@@ -1,12 +1,13 @@
 import { FormatUrn, GetFlowQueryParamsRequest, GetFlowsQueryParamsRequest } from "@tams-k8s/api";
+import { codecValidator } from './codec';
 import { timerangeValidator } from './timerange';
 import Joi from "joi";
 
 export const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsRequest>({
-    source_id: Joi.string(),
+    source_id: Joi.string().uuid(),
     timerange: timerangeValidator,
     format: Joi.string().valid(...Object.values(FormatUrn)),
-    codec: Joi.string(),
+    codec: codecValidator,
     label: Joi.string(),
     frame_width: Joi.number(),
     frame_height: Joi.number(),
