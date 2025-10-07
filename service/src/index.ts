@@ -1,14 +1,10 @@
 import express from 'express';
-import { log } from "@tams-k8s/logger";
-import { BackendManager } from "./backend/manager";
-import { readConfig } from "./config/reader";
-import { RepositoriesBuilder } from "./repository/builder";
-import { errorHandler } from "./routes/errorHelper";
-import { FlowsRoutes } from "./routes/flows";
-import { RootRoutes } from "./routes/root";
-import { ServiceRoutes } from "./routes/service";
-import { validationHelper } from "./routes/validationHelper";
-
+import { log } from '@tams-k8s/logger';
+import { BackendManager } from './backend/manager';
+import { readConfig } from './config/reader';
+import { RepositoriesBuilder } from './repository/builder';
+import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
+import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
 
 const config = readConfig();
 
@@ -17,7 +13,7 @@ const main = async () => {
     const app = express();
 
     // enable receiving json
-    app.use(express.json());
+    app.use(bodyParser);
 
     const backends = new BackendManager(config.backends);
     await backends.initialize();

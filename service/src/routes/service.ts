@@ -1,11 +1,11 @@
+import Joi from 'joi';
 import { Request, Response } from 'express'
-import { ValidatedRequest } from "express-joi-validation";
-import Joi from "joi";
-import { GetServiceResponse, GetStorageBackendsResponse, PostServiceRequest } from "@tams-k8s/api";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
-import { Routes } from "./generic";
-import { BodySchema, validator } from "./validationHelper";
+import { ValidatedRequest } from 'express-joi-validation';
+import { GetServiceResponse, GetStorageBackendsResponse, PostServiceRequest } from '@tams-k8s/api';
+import { BackendManager } from '../backend/manager';
+import { RepositoriesBuilder } from '../repository/builder';
+import { Routes } from './generic';
+import { BodySchema, validator } from './middlewares';
 
 const updateServiceRequestValidator = Joi.object<PostServiceRequest>({
     name: Joi.string().required(),

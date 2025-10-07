@@ -2,26 +2,31 @@ import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
 import {
     Flow,
-    flowsValidator,
     FlowTags,
-    flowTagsValidator,
-    flowValidator,
     GetFlowPathParams,
-    getFlowPathParamsValidator,
     GetFlowQueryParamsRequest,
     GetFlowsQueryParamsRequest,
+    GetFlowTagPathParams,
     GetFlowTagsPathParams,
+    PutFlowPathParams,
+    PutFlowTagPathParams,
+    flowsValidator,
+    flowTagsValidator,
+    flowTagValidator,
+    flowValidator,
+    getFlowPathParamsValidator,
+    getFlowTagPathParamsValidator,
     getFlowTagsPathParamsValidator,
     listFlowsQueryParamsValidator,
-    PutFlowPathParams,
     putFlowPathParamsValidator,
-} from "@tams-k8s/api";
+    putFlowTagPathParamsValidator,
+} from '@tams-k8s/api';
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
-import { BadRequestHttpError, ConflictHttpError, NotFoundHttpError } from "./errorHelper";
+import { BadRequestHttpError, ForbiddenHttpError, NotFoundHttpError } from "./middlewares/errorHelper";
 import { Routes } from "./generic";
-import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } from "./validationHelper";
+import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } from "./middlewares/validationHelper";
 
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
@@ -51,6 +56,18 @@ export class FlowsRoutes extends Routes {
             validator.params(getFlowTagsPathParamsValidator),
             validator.response(flowTagsValidator.required()),
             this.getFlowTags.bind(this),
+        );
+        this.route.get<any, string>(
+            '/:flowId/tags/:name',
+            validator.params(getFlowTagPathParamsValidator),
+            validator.response(flowTagValidator.required()),
+            this.getFlowTag.bind(this),
+        );
+        this.route.put<any, void>(
+            '/:flowId/tags/:name',
+            validator.params(putFlowTagPathParamsValidator),
+            validator.body(flowTagValidator.required()),
+            this.putFlowTag.bind(this),
         )
     }
 
@@ -104,7 +121,7 @@ export class FlowsRoutes extends Routes {
 
         // protect readonly flow
         if (currentFlow?.readOnly === true && (flowToPut.readOnly === true || flowToPut.readOnly === undefined)) {
-            throw new ConflictHttpError('Flow is in read only');
+            throw new ForbiddenHttpError('Flow is in read only mode');
         }
 
         // updated readonly fields
@@ -122,5 +139,24 @@ export class FlowsRoutes extends Routes {
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError('Flow could not be found');
         res.json(flow.tags);
+    }
+
+    private async getFlowTag(req: ValidatedRequest<ParamsSchema<GetFlowTagPathParams>>, res: Response<string>) {
+        const flowRepository = this.repositories.getFlowRepository();
+        const flow = await flowRepository.getFlowById(req.params.flowId);
+        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
+        if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
+        res.json(flow.tags[req.params.name]);
+    }
+
+    private async putFlowTag(req: ValidatedRequest<ParamsBodySchema<PutFlowTagPathParams, string>>, res: Response<void>) {
+        const flowRepository = this.repositories.getFlowRepository();
+        const flow = await flowRepository.getFlowById(req.params.flowId);
+        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
+        if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
+        flow.tags = flow.tags || {};
+        flow.tags[req.params.name] = req.body;
+        await flowRepository.putFlow(flow);
+        res.sendStatus(204);
     }
 }
