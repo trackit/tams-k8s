@@ -139,3 +139,5 @@ export const flowValidator = Joi.object<Flow>({
 });
 
 export const flowsValidator = Joi.array().items(flowValidator);
+
+export const flowTagsValidator = Joi.object().pattern(Joi.string(), Joi.string());

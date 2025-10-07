@@ -31,6 +31,10 @@ export interface BodySchema<T> extends ValidatedRequestSchema {
     [ContainerTypes.Body]: T
 }
 
+export interface ParamsSchema<T> extends ValidatedRequestSchema {
+    [ContainerTypes.Params]: T
+}
+
 export interface ParamsBodySchema<Params, Body> extends ValidatedRequestSchema {
     [ContainerTypes.Params]: Params
     [ContainerTypes.Body]: Body

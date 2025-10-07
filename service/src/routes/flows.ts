@@ -3,11 +3,15 @@ import { ValidatedRequest } from "express-joi-validation";
 import {
     Flow,
     flowsValidator,
+    FlowTags,
+    flowTagsValidator,
     flowValidator,
     GetFlowPathParams,
     getFlowPathParamsValidator,
     GetFlowQueryParamsRequest,
     GetFlowsQueryParamsRequest,
+    GetFlowTagsPathParams,
+    getFlowTagsPathParamsValidator,
     listFlowsQueryParamsValidator,
     PutFlowPathParams,
     putFlowPathParamsValidator,
@@ -17,7 +21,7 @@ import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
 import { BadRequestHttpError, ConflictHttpError, NotFoundHttpError } from "./errorHelper";
 import { Routes } from "./generic";
-import { ParamsBodySchema, ParamsQSSchema, QSSchema, validator } from "./validationHelper";
+import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } from "./validationHelper";
 
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
@@ -42,6 +46,12 @@ export class FlowsRoutes extends Routes {
             validator.response(flowValidator.required()),
             this.putFlow.bind(this),
         );
+        this.route.get<any, FlowTags>(
+            '/:flowId/tags',
+            validator.params(getFlowTagsPathParamsValidator),
+            validator.response(flowTagsValidator.required()),
+            this.getFlowTags.bind(this),
+        )
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
@@ -105,5 +115,12 @@ export class FlowsRoutes extends Routes {
 
         const flow = await flowRepository.putFlow(flowToPut);
         res.json(FlowAdapter.toApi(flow));
+    }
+
+    private async getFlowTags(req: ValidatedRequest<ParamsSchema<GetFlowTagsPathParams>>, res: Response<FlowTags>) {
+        const flowRepository = this.repositories.getFlowRepository();
+        const flow = await flowRepository.getFlowById(req.params.flowId);
+        if (flow === null) throw new NotFoundHttpError('Flow could not be found');
+        res.json(flow.tags);
     }
 }

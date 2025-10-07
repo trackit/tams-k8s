@@ -5,3 +5,7 @@ export interface PutFlowPathParams {
 export interface GetFlowPathParams {
     flowId: string;
 }
+
+export interface GetFlowTagsPathParams {
+    flowId: string;
+}

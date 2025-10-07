@@ -179,3 +179,5 @@ export interface MultiFlow extends CommonFlow {
 }
 
 export type Flow = VideoFlow | AudioFlow | ImageFlow | DataFlow | MultiFlow;
+
+export type FlowTags = Record<string, string>;
