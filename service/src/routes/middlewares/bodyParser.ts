@@ -1,7 +1,13 @@
 import express, { Request, Response, NextFunction } from 'express';
 
 const pathWithStringBody = [
-    /^\/flows\/.+\/tags\/.+$/
+    /^\/flows\/.+\/tags\/.+$/,
+    /^\/flows\/.+\/description$/,
+    /^\/flows\/.+\/label$/,
+    /^\/flows\/.+\/read_only$/,
+    /^\/flows\/.+\/flow_collection$/,
+    /^\/flows\/.+\/max_bit_rate$/,
+    /^\/flows\/.+\/avg_bit_rate$/,
 ];
 
 export const bodyParser = (req: Request, res: Response, next: NextFunction) => {

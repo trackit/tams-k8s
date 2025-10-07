@@ -69,6 +69,7 @@ export class FlowsTags extends Routes {
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
         flow.tags = flow.tags || {};
         flow.tags[req.params.name] = req.body;
+        flow.metadataUpdated = new Date();
         await flowRepository.putFlow(flow);
         res.sendStatus(204);
     }
@@ -80,6 +81,7 @@ export class FlowsTags extends Routes {
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
         if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
         delete flow.tags[req.params.name];
+        flow.metadataUpdated = new Date();
         await flowRepository.putFlow(flow);
         res.sendStatus(204);
     }

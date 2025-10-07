@@ -1,5 +1,5 @@
-import { Response } from "express";
-import { ValidatedRequest } from "express-joi-validation";
+import { Response } from 'express';
+import { ValidatedRequest } from 'express-joi-validation';
 import {
     Flow,
     flowsValidator,
@@ -13,19 +13,32 @@ import {
     PutFlowPathParams,
     putFlowPathParamsValidator,
 } from '@tams-k8s/api';
-import { BackendManager } from "../backend/manager";
-import { FlowAdapter } from "../repository/adapters/flow.adapter";
-import { RepositoriesBuilder } from "../repository/builder";
+import { BackendManager } from '../backend/manager';
+import { FlowAdapter } from '../repository/adapters/flow.adapter';
+import { RepositoriesBuilder } from '../repository/builder';
+import { FlowsDescription } from './flows.description';
+import { FlowsLabel } from './flows.label';
+import { FlowsReadOnly } from './flows.readOnly';
 import { FlowsTags } from './flows.tags';
-import { BadRequestHttpError, ForbiddenHttpError, NotFoundHttpError } from "./middlewares/errorHelper";
-import { Routes } from "./generic";
-import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } from "./middlewares/validationHelper";
+import {
+    BadRequestHttpError,
+    ForbiddenHttpError,
+    NotFoundHttpError,
+    ParamsBodySchema,
+    ParamsQSSchema,
+    QSSchema,
+    validator
+} from './middlewares';
+import { Routes } from './generic';
 
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
 
         const flowTagsRoutes = new FlowsTags(repositories, backends);
+        const flowDescriptionRoutes = new FlowsDescription(repositories, backends);
+        const flowLabelRoutes = new FlowsLabel(repositories, backends);
+        const flowReadOnlyRoutes = new FlowsReadOnly(repositories, backends);
 
         this.route.get(
             '/',
@@ -48,6 +61,9 @@ export class FlowsRoutes extends Routes {
             this.putFlow.bind(this),
         );
         this.route.use(flowTagsRoutes.getRoutes());
+        this.route.use(flowDescriptionRoutes.getRoutes());
+        this.route.use(flowLabelRoutes.getRoutes());
+        this.route.use(flowReadOnlyRoutes.getRoutes());
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
@@ -91,7 +107,7 @@ export class FlowsRoutes extends Routes {
 
     private async putFlow(req: ValidatedRequest<ParamsBodySchema<PutFlowPathParams, Flow>>, res: Response<Flow>) {
         if (req.params.flowId !== req.body.id) {
-            throw new BadRequestHttpError( 'flow ID does not match URL parameter');
+            throw new BadRequestHttpError('flow ID does not match URL parameter');
         }
         const flowRepository = this.repositories.getFlowRepository();
         const currentFlow = await flowRepository.getFlowById(req.params.flowId);
