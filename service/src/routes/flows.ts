@@ -1,6 +1,7 @@
 import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
 import {
+    DeleteFlowTagPathParams,
     Flow,
     FlowTags,
     GetFlowPathParams,
@@ -20,6 +21,7 @@ import {
     listFlowsQueryParamsValidator,
     putFlowPathParamsValidator,
     putFlowTagPathParamsValidator,
+    deleteFlowTagPathParamsValidator,
 } from '@tams-k8s/api';
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
@@ -68,6 +70,11 @@ export class FlowsRoutes extends Routes {
             validator.params(putFlowTagPathParamsValidator),
             validator.body(flowTagValidator.required()),
             this.putFlowTag.bind(this),
+        );
+        this.route.delete<any, void>(
+            '/:flowId/tags/:name',
+            validator.params(deleteFlowTagPathParamsValidator),
+            this.deleteFlowTag.bind(this),
         )
     }
 
@@ -156,6 +163,17 @@ export class FlowsRoutes extends Routes {
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
         flow.tags = flow.tags || {};
         flow.tags[req.params.name] = req.body;
+        await flowRepository.putFlow(flow);
+        res.sendStatus(204);
+    }
+
+    private async deleteFlowTag(req: ValidatedRequest<ParamsSchema<DeleteFlowTagPathParams>>, res: Response) {
+        const flowRepository = this.repositories.getFlowRepository();
+        const flow = await flowRepository.getFlowById(req.params.flowId);
+        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
+        if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
+        if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
+        delete flow.tags[req.params.name];
         await flowRepository.putFlow(flow);
         res.sendStatus(204);
     }

@@ -19,3 +19,8 @@ export interface PutFlowTagPathParams {
     flowId: string;
     name: string;
 }
+
+export interface DeleteFlowTagPathParams {
+    flowId: string;
+    name: string;
+}
