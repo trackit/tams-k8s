@@ -1,31 +1,22 @@
 import { Response } from "express";
 import { ValidatedRequest } from "express-joi-validation";
 import {
-    DeleteFlowTagPathParams,
     Flow,
-    FlowTags,
-    GetFlowPathParams,
-    GetFlowQueryParamsRequest,
-    GetFlowsQueryParamsRequest,
-    GetFlowTagPathParams,
-    GetFlowTagsPathParams,
-    PutFlowPathParams,
-    PutFlowTagPathParams,
     flowsValidator,
-    flowTagsValidator,
-    flowTagValidator,
     flowValidator,
+    GetFlowPathParams,
     getFlowPathParamsValidator,
-    getFlowTagPathParamsValidator,
-    getFlowTagsPathParamsValidator,
+    GetFlowQueryParamsRequest,
+    getFlowQueryParamsValidator,
+    GetFlowsQueryParamsRequest,
     listFlowsQueryParamsValidator,
+    PutFlowPathParams,
     putFlowPathParamsValidator,
-    putFlowTagPathParamsValidator,
-    deleteFlowTagPathParamsValidator,
 } from '@tams-k8s/api';
 import { BackendManager } from "../backend/manager";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
+import { FlowsTags } from './flows.tags';
 import { BadRequestHttpError, ForbiddenHttpError, NotFoundHttpError } from "./middlewares/errorHelper";
 import { Routes } from "./generic";
 import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } from "./middlewares/validationHelper";
@@ -33,6 +24,8 @@ import { ParamsBodySchema, ParamsQSSchema, ParamsSchema, QSSchema, validator } f
 export class FlowsRoutes extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
+
+        const flowTagsRoutes = new FlowsTags(repositories, backends);
 
         this.route.get(
             '/',
@@ -43,6 +36,7 @@ export class FlowsRoutes extends Routes {
         this.route.get<any, Flow>(
             '/:flowId',
             validator.params(getFlowPathParamsValidator),
+            validator.query(getFlowQueryParamsValidator.required()),
             validator.response(flowValidator.required()),
             this.getFlow.bind(this)
         );
@@ -53,29 +47,7 @@ export class FlowsRoutes extends Routes {
             validator.response(flowValidator.required()),
             this.putFlow.bind(this),
         );
-        this.route.get<any, FlowTags>(
-            '/:flowId/tags',
-            validator.params(getFlowTagsPathParamsValidator),
-            validator.response(flowTagsValidator.required()),
-            this.getFlowTags.bind(this),
-        );
-        this.route.get<any, string>(
-            '/:flowId/tags/:name',
-            validator.params(getFlowTagPathParamsValidator),
-            validator.response(flowTagValidator.required()),
-            this.getFlowTag.bind(this),
-        );
-        this.route.put<any, void>(
-            '/:flowId/tags/:name',
-            validator.params(putFlowTagPathParamsValidator),
-            validator.body(flowTagValidator.required()),
-            this.putFlowTag.bind(this),
-        );
-        this.route.delete<any, void>(
-            '/:flowId/tags/:name',
-            validator.params(deleteFlowTagPathParamsValidator),
-            this.deleteFlowTag.bind(this),
-        )
+        this.route.use(flowTagsRoutes.getRoutes());
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
@@ -139,42 +111,5 @@ export class FlowsRoutes extends Routes {
 
         const flow = await flowRepository.putFlow(flowToPut);
         res.json(FlowAdapter.toApi(flow));
-    }
-
-    private async getFlowTags(req: ValidatedRequest<ParamsSchema<GetFlowTagsPathParams>>, res: Response<FlowTags>) {
-        const flowRepository = this.repositories.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError('Flow could not be found');
-        res.json(flow.tags);
-    }
-
-    private async getFlowTag(req: ValidatedRequest<ParamsSchema<GetFlowTagPathParams>>, res: Response<string>) {
-        const flowRepository = this.repositories.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
-        res.json(flow.tags[req.params.name]);
-    }
-
-    private async putFlowTag(req: ValidatedRequest<ParamsBodySchema<PutFlowTagPathParams, string>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
-        flow.tags = flow.tags || {};
-        flow.tags[req.params.name] = req.body;
-        await flowRepository.putFlow(flow);
-        res.sendStatus(204);
-    }
-
-    private async deleteFlowTag(req: ValidatedRequest<ParamsSchema<DeleteFlowTagPathParams>>, res: Response) {
-        const flowRepository = this.repositories.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
-        if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
-        delete flow.tags[req.params.name];
-        await flowRepository.putFlow(flow);
-        res.sendStatus(204);
     }
 }
