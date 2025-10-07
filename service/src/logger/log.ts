@@ -10,4 +10,3 @@ export const log = createLogger({
     format: format.simple(),
     level: config.logs.level
 });
-

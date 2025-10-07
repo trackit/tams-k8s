@@ -42,7 +42,8 @@ export class BackendManager {
         return this.backendDefault;
     }
 
-    getBackendById(id: string): Backend {
+    getBackendById(id: string): Backend | null {
+        if (!this.backendMap[id]) return null;
         return this.backendMap[id];
     }
 

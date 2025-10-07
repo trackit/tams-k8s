@@ -5,8 +5,6 @@ import {
     DynamoDBClient,
     ResourceNotFoundException
 } from '@aws-sdk/client-dynamodb';
-import e from "express";
-import { config } from "winston";
 
 import type { DynamoDBConfig } from '../../config';
 import  { Factory } from "../factory";
