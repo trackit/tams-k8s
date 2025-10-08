@@ -41,7 +41,7 @@ export class FlowsMaxBitRate extends Routes {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        res.json(flow?.maxBitRate)
+        res.json(flow?.maxBitRate);
     }
 
     async putFlowMaxBitRate(req: ValidatedRequest<ParamsBodySchema<PutFlowMaxBitRatePathParams, number>>, res: Response<void>) {

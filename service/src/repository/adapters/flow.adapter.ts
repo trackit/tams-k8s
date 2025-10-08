@@ -4,7 +4,7 @@ import {
     ContainerMapping as ApiContainerMapping,
     DataFlow as ApiDataFlow,
     Flow as ApiFlow,
-    FlowCollectionItem as ApiFlowCollectionIem,
+    FlowCollectionItem as ApiFlowCollectionItem,
     FormatUrn,
     ImageFlow as ApiImageFlow,
     VideoFlow as ApiVideoFlow,
@@ -43,7 +43,7 @@ export class FlowAdapter {
         }
     }
 
-    private static fromFlowCollectionItemApi(flowCollection: ApiFlowCollectionIem): RepositoryFlowCollectionItem {
+    private static fromFlowCollectionItemApi(flowCollection: ApiFlowCollectionItem): RepositoryFlowCollectionItem {
         return {
             id: flowCollection.id,
             role: flowCollection.role,
@@ -51,7 +51,7 @@ export class FlowAdapter {
         }
     }
 
-    static fromApiFlowCollection(flowCollection: ApiFlowCollectionIem[]): RepositoryFlowCollectionItem[] {
+    static fromApiFlowCollection(flowCollection: ApiFlowCollectionItem[]): RepositoryFlowCollectionItem[] {
         return flowCollection.map(FlowAdapter.fromFlowCollectionItemApi);
     }
 
@@ -193,7 +193,7 @@ export class FlowAdapter {
         }
     }
 
-    private static toApiFlowCollectionItem(flowCollectionItem: RepositoryFlowCollectionItem): ApiFlowCollectionIem {
+    private static toApiFlowCollectionItem(flowCollectionItem: RepositoryFlowCollectionItem): ApiFlowCollectionItem {
         return {
             id: flowCollectionItem.id,
             role: flowCollectionItem.role,
@@ -201,7 +201,7 @@ export class FlowAdapter {
         }
     }
 
-    static toApiFlowCollection(flowCollection: RepositoryFlowCollectionItem[]): ApiFlowCollectionIem[] {
+    static toApiFlowCollection(flowCollection: RepositoryFlowCollectionItem[]): ApiFlowCollectionItem[] {
         return flowCollection.map(FlowAdapter.toApiFlowCollectionItem);
     }
 

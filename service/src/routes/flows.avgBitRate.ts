@@ -41,7 +41,7 @@ export class FlowsAvgBitRate extends Routes {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        res.json(flow?.avgBitRate)
+        res.json(flow?.avgBitRate);
     }
 
     async putFlowAvgBitRate(req: ValidatedRequest<ParamsBodySchema<PutFlowAvgBitRatePathParams, number>>, res: Response<void>) {
