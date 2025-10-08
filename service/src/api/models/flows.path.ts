@@ -86,3 +86,16 @@ export interface PutFlowMaxBitRatePathParams {
 export interface DeleteFlowMaxBitRatePathParams {
     flowId: string;
 }
+
+// Avg bit rate
+export interface GetFlowAvgBitRatePathParams {
+    flowId: string;
+}
+
+export interface PutFlowAvgBitRatePathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowAvgBitRatePathParams {
+    flowId: string;
+}

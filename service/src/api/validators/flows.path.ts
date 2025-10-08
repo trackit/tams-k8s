@@ -1,10 +1,12 @@
 import Joi from 'joi';
 import {
+    DeleteFlowAvgBitRatePathParams,
     DeleteFlowDescriptionPathParams,
     DeleteFlowFlowCollectionPathParams,
     DeleteFlowLabelPathParams,
     DeleteFlowMaxBitRatePathParams,
     DeleteFlowTagPathParams,
+    GetFlowAvgBitRatePathParams,
     GetFlowDescriptionPathParams,
     GetFlowFlowCollectionPathParams,
     GetFlowLabelPathParams,
@@ -13,6 +15,7 @@ import {
     GetFlowReadOnlyPathParams,
     GetFlowTagPathParams,
     GetFlowTagsPathParams,
+    PutFlowAvgBitRatePathParams,
     PutFlowDescriptionPathParams,
     PutFlowFlowCollectionPathParams,
     PutFlowLabelPathParams,
@@ -108,5 +111,18 @@ export const putFlowMaxBitRatePathParamsValidator = Joi.object<PutFlowMaxBitRate
 });
 
 export const deleteFlowMaxBitRatePathParamsValidator = Joi.object<DeleteFlowMaxBitRatePathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+// Avg bit rate
+export const getFlowAvgBitRatePathParamsValidator = Joi.object<GetFlowAvgBitRatePathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+export const putFlowAvgBitRatePathParamsValidator = Joi.object<PutFlowAvgBitRatePathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+export const deleteFlowAvgBitRatePathParamsValidator = Joi.object<DeleteFlowAvgBitRatePathParams>({
     flowId: Joi.string().uuid().required(),
 });
