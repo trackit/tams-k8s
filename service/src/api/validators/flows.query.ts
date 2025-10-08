@@ -12,7 +12,7 @@ export const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsReque
     frame_width: Joi.number(),
     frame_height: Joi.number(),
     page: Joi.string(),
-    limit: Joi.number().min(1).max(50),
+    limit: Joi.number().min(1).max(50).default(50),
 }).pattern(/^tag\..+$/, Joi.string()).pattern(/^tag_exists\..+$/, Joi.boolean());
 
 export const getFlowQueryParamsValidator = Joi.object<GetFlowQueryParamsRequest>({
