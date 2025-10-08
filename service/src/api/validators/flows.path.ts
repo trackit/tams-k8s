@@ -1,15 +1,18 @@
 import Joi from 'joi';
 import {
     DeleteFlowDescriptionPathParams,
+    DeleteFlowFlowCollectionPathParams,
     DeleteFlowLabelPathParams,
     DeleteFlowTagPathParams,
     GetFlowDescriptionPathParams,
+    GetFlowFlowCollectionPathParams,
     GetFlowLabelPathParams,
     GetFlowPathParams,
     GetFlowReadOnlyPathParams,
     GetFlowTagPathParams,
     GetFlowTagsPathParams,
     PutFlowDescriptionPathParams,
+    PutFlowFlowCollectionPathParams,
     PutFlowLabelPathParams,
     PutFlowPathParams,
     PutFlowReadOnlyPathParams,
@@ -76,5 +79,18 @@ export const getFlowReadOnlyPathParamsValidator = Joi.object<GetFlowReadOnlyPath
 });
 
 export const putFlowReadOnlyPathParamsValidator = Joi.object<PutFlowReadOnlyPathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+// Flow collection
+export const getFlowFlowCollectionPathParamsValidator = Joi.object<GetFlowFlowCollectionPathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+export const putFlowFlowCollectionPathParamsValidator = Joi.object<PutFlowFlowCollectionPathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+export const deleteFlowFlowCollectionPathParamsValidator = Joi.object<DeleteFlowFlowCollectionPathParams>({
     flowId: Joi.string().uuid().required(),
 });

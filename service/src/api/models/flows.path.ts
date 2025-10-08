@@ -60,3 +60,16 @@ export interface GetFlowReadOnlyPathParams {
 export interface PutFlowReadOnlyPathParams {
     flowId: string;
 }
+
+// Flow collection
+export interface GetFlowFlowCollectionPathParams {
+    flowId: string;
+}
+
+export interface PutFlowFlowCollectionPathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowFlowCollectionPathParams {
+    flowId: string;
+}

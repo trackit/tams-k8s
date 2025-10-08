@@ -5,7 +5,6 @@ const pathWithStringBody = [
     /^\/flows\/.+\/description$/,
     /^\/flows\/.+\/label$/,
     /^\/flows\/.+\/read_only$/,
-    /^\/flows\/.+\/flow_collection$/,
     /^\/flows\/.+\/max_bit_rate$/,
     /^\/flows\/.+\/avg_bit_rate$/,
 ];

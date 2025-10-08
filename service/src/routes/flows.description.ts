@@ -24,7 +24,7 @@ export class FlowsDescription extends Routes {
             validator.response(flowDescriptionValidator),
             this.getFlowDescription.bind(this),
         );
-        this.route.put<any, void>(
+        this.route.put<any, void, string>(
             '/:flowId/description',
             validator.params(putFlowDescriptionPathParamsValidator),
             validator.body(flowDescriptionValidator.required()),

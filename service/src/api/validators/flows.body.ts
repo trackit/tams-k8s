@@ -4,8 +4,6 @@ import {
     Fraction,
     FlowCollectionItem,
     ContainerMapping,
-    GetFlowsQueryParamsRequest,
-    GetFlowQueryParamsRequest,
     FormatUrn,
     VideoFlow,
     InterlaceMode,
@@ -149,3 +147,5 @@ export const flowDescriptionValidator = Joi.string();
 export const flowLabelValidator = Joi.string();
 
 export const flowReadOnlyValidator = Joi.boolean();
+
+export const flowFlowCollectionValidator = Joi.array().items(flowCollectionItemValidator);

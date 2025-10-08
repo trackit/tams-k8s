@@ -51,6 +51,10 @@ export class FlowAdapter {
         }
     }
 
+    static fromApiFlowCollection(flowCollection: ApiFlowCollectionIem[]): RepositoryFlowCollectionItem[] {
+        return flowCollection.map(FlowAdapter.fromFlowCollectionItemApi);
+    }
+
     private static fromCommonApi(common: ApiCommonFlow): RepositoryCommonFlow {
         return {
             flowId: common.id,
@@ -195,6 +199,10 @@ export class FlowAdapter {
             role: flowCollectionItem.role,
             container_mapping: flowCollectionItem.containerMapping ? FlowAdapter.toApiContainerMapping(flowCollectionItem.containerMapping) : undefined,
         }
+    }
+
+    static toApiFlowCollection(flowCollection: RepositoryFlowCollectionItem[]): ApiFlowCollectionIem[] {
+        return flowCollection.map(FlowAdapter.toApiFlowCollectionItem);
     }
 
     private static toCommonApi(flow: RepositoryCommonFlow): ApiCommonFlow {

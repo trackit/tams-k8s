@@ -25,7 +25,7 @@ export class FlowsLabel extends Routes {
             validator.response(flowLabelValidator),
             this.getFlowLabel.bind(this),
         );
-        this.route.put<any, void>(
+        this.route.put<any, void, string>(
             '/:flowId/label',
             validator.params(putFlowLabelPathParamsValidator),
             validator.body(flowLabelValidator.required()),
