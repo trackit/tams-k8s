@@ -19,6 +19,7 @@ import { RepositoriesBuilder } from '../repository/builder';
 import { FlowsDescription } from './flows.description';
 import { FlowsFlowCollection } from './flows.flowCollection';
 import { FlowsLabel } from './flows.label';
+import { FlowsMaxBitRate } from './flows.maxBitRate';
 import { FlowsReadOnly } from './flows.readOnly';
 import { FlowsTags } from './flows.tags';
 import {
@@ -41,6 +42,7 @@ export class FlowsRoutes extends Routes {
         const flowLabelRoutes = new FlowsLabel(repositories, backends);
         const flowReadOnlyRoutes = new FlowsReadOnly(repositories, backends);
         const flowFlowCollectionRoutes = new FlowsFlowCollection(repositories, backends);
+        const flowMaxBitRateRoutes = new FlowsMaxBitRate(repositories, backends);
 
         this.route.get(
             '/',
@@ -67,6 +69,7 @@ export class FlowsRoutes extends Routes {
         this.route.use(flowLabelRoutes.getRoutes());
         this.route.use(flowReadOnlyRoutes.getRoutes());
         this.route.use(flowFlowCollectionRoutes.getRoutes());
+        this.route.use(flowMaxBitRateRoutes.getRoutes());
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {

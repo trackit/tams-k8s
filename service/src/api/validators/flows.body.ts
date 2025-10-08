@@ -149,3 +149,5 @@ export const flowLabelValidator = Joi.string();
 export const flowReadOnlyValidator = Joi.boolean();
 
 export const flowFlowCollectionValidator = Joi.array().items(flowCollectionItemValidator);
+
+export const flowMaxBitRateValidator = Joi.number().min(0);

@@ -73,3 +73,16 @@ export interface PutFlowFlowCollectionPathParams {
 export interface DeleteFlowFlowCollectionPathParams {
     flowId: string;
 }
+
+// Max bit rate
+export interface GetFlowMaxBitRatePathParams {
+    flowId: string;
+}
+
+export interface PutFlowMaxBitRatePathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowMaxBitRatePathParams {
+    flowId: string;
+}
