@@ -1,4 +1,4 @@
-import type { DBConfig } from '../config';
+import type { DBConfig } from '../configParser';
 import { DDBRepositoryFactory } from "./dynamodb/factory";
 import  { type Factory } from "./factory";
 import  { FlowRepository } from "./flows";

@@ -1,7 +1,7 @@
 import express from 'express';
 import { log } from '@tams-k8s/logger';
 import { BackendManager } from './backend/manager';
-import { readConfig } from './config/reader';
+import { readConfig } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
 import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';

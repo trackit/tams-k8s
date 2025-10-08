@@ -1,5 +1,5 @@
 import { createLogger, format, transports } from 'winston';
-import { readConfig } from "../config/reader";
+import { readConfig } from "../configParser/reader";
 
 const config = readConfig();
 

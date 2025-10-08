@@ -1,0 +1,11 @@
+database:
+  type: dynamodb
+  flowTableName: 'k8s-tams-test'
+  serviceTableName: 'k8s-tams-test-service'
+backends:
+  - id: test
+    type: s3
+    bucketName: k8s-tams-test
+    default: true
+logs:
+  level: info

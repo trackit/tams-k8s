@@ -1,4 +1,4 @@
-import { BackendConfig } from "../config";
+import { BackendConfig } from "../configParser";
 import { Backend } from "./backend";
 import { S3BackendImpl } from "./s3/backend";
 
