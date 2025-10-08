@@ -16,6 +16,7 @@ import {
 import { BackendManager } from '../backend/manager';
 import { FlowAdapter } from '../repository/adapters/flow.adapter';
 import { RepositoriesBuilder } from '../repository/builder';
+import { InvalidPageTokenError } from '../repository/errors';
 import { FlowsAvgBitRate } from './flows.avgBitRate';
 import { FlowsDescription } from './flows.description';
 import { FlowsFlowCollection } from './flows.flowCollection';
@@ -98,26 +99,33 @@ export class FlowsRoutes extends Routes {
                 tags[key.replace('tag.', '')] = value;
             }
         });
-        const list = await flowRepo.listFlows({
-            sourceId: req.query.source_id,
-            timerange: req.query.timerange,
-            flowFormat: req.query.format,
-            codec: req.query.codec,
-            label: req.query.label,
-            frameWidth: req.query.frame_width,
-            frameHeight: req.query.frame_height,
-            limit: req.query.limit,
-            pageToken: req.query.page,
-            tags,
-            haveTags,
-            doesNotHaveTags
-        });
-        if (list.limit !== undefined) res.header('X-Paging-Limit', list.limit.toString());
-        if (list.nextPageToken !== undefined) {
-            res.header('X-Paging-NextKey', list.nextPageToken);
-            res.header('Link', `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`);
+        try {
+            const list = await flowRepo.listFlows({
+                sourceId: req.query.source_id,
+                timerange: req.query.timerange,
+                flowFormat: req.query.format,
+                codec: req.query.codec,
+                label: req.query.label,
+                frameWidth: req.query.frame_width,
+                frameHeight: req.query.frame_height,
+                limit: req.query.limit,
+                pageToken: req.query.page,
+                tags,
+                haveTags,
+                doesNotHaveTags
+            });
+            if (list.limit !== undefined) res.header('X-Paging-Limit', list.limit.toString());
+            if (list.nextPageToken !== undefined) {
+                res.header('X-Paging-NextKey', list.nextPageToken);
+                res.header('Link', `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`);
+            }
+            res.json(list.flows.map((flow) => (FlowAdapter.toApi(flow))));
+        } catch (e) {
+            if (e instanceof InvalidPageTokenError) {
+                throw new BadRequestHttpError(e.message);
+            }
+            throw e;
         }
-        res.json(list.flows.map((flow) => (FlowAdapter.toApi(flow))));
     }
 
     // TODO(arthur): implement query params (timerange and include_timerange)
