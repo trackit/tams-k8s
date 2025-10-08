@@ -17,8 +17,16 @@ export interface ListFlowsFilters {
     frameWidth?: number;
     frameHeight?: number;
     tags?: Record<string, string>;
+    limit?: number;
+    pageToken?: string;
     haveTags?: string[];
     doesNotHaveTags?: string[];
+}
+
+export interface ListFlowsResponse {
+    flows: Flow[];
+    limit?: number;
+    nextPageToken?: string;
 }
 
 export interface Fraction {
@@ -141,7 +149,7 @@ export interface MultiFlow extends CommonFlow {
 export type Flow = VideoFlow | AudioFlow | ImageFlow | DataFlow | MultiFlow;
 
 export interface FlowRepository {
-    listFlows(filters?: ListFlowsFilters): Promise<Flow[]>;
+    listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse>;
     getFlowById(flowId: string): Promise<Flow | null>;
     putFlow(flow: Flow): Promise<Flow>;
 }

@@ -1,7 +1,16 @@
 import { AttributeValue, DynamoDBClient, GetItemCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import Joi from 'joi';
 import { DynamoDBConfig } from "../../config";
-import type { ContainerMapping, Flow, FlowCollectionItem, FlowRepository, ListFlowsFilters } from "../flows.js";
+import { InvalidPageTokenError } from '../errors';
+import type {
+    ContainerMapping,
+    Flow,
+    FlowCollectionItem,
+    FlowRepository,
+    ListFlowsFilters,
+    ListFlowsResponse
+} from '../flows.js';
 
 export class DDBFlowsImpl implements FlowRepository {
     private readonly client: DynamoDBClient;
@@ -72,7 +81,7 @@ export class DDBFlowsImpl implements FlowRepository {
             maxBitRate: data.maxBitRate,
             segmentDuration: data.segmentDuration,
             timerange: data.timerange,
-            flowCollection: data.flowCollection?.map(this.flowCollectionItemRecordToFlowCollectionItem.bind(this)),
+            flowCollection: data.flowCollection?.map((item: any) => this.flowCollectionItemRecordToFlowCollectionItem(item)),
             collectedBy: data.collectedBy,
             containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
             format: data.format,
@@ -81,14 +90,34 @@ export class DDBFlowsImpl implements FlowRepository {
     }
 
     private recordsToFlow(records: Record<string, AttributeValue>[]) {
-        return records.map(this.recordToFlow);
+        return records.map((record) => this.recordToFlow(record));
     }
 
-    async listFlows(filters?: ListFlowsFilters) {
+    private encodePageToken(flowId: string) {
+        return Buffer.from(flowId, 'utf8').toString('base64url');
+    }
+
+    private decodePageToken(pageToken: string) {
+        const decoded = Buffer.from(pageToken, 'base64url').toString('utf8');
+        Joi.assert(decoded, Joi.string().uuid().required());
+        return decoded;
+    }
+
+    // TODO(arthur): implement timerange filtering
+    async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
         let filterExpr: string[] = [];
         const exprAttrVal: Record<string, AttributeValue> = {};
         const exprAttrNames: Record<string, string> = {};
         let nameInc = 0;
+        let exclusiveStartKey: Record<string, AttributeValue> | undefined = undefined;
+        if (filters?.pageToken) {
+            try {
+                const decoded = this.decodePageToken(filters.pageToken);
+                exclusiveStartKey = marshall({ flowId: decoded });
+            } catch (e) {
+                throw new InvalidPageTokenError();
+            }
+        }
         if (filters?.sourceId) {
             filterExpr.push('sourceId = :sourceId');
             exprAttrVal[':sourceId'] = { S: filters.sourceId };
@@ -133,10 +162,15 @@ export class DDBFlowsImpl implements FlowRepository {
             TableName: this.config.flowTtableName,
             FilterExpression: filterExpr.length === 0 ? undefined : filterExpr.join(' AND '),
             ExpressionAttributeNames: Object.keys(exprAttrNames).length ? exprAttrNames : undefined,
-            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined
+            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined,
+            Limit: filters?.limit,
+            ExclusiveStartKey: exclusiveStartKey
         }))
-        if (!resp.Items) return [];
-        return this.recordsToFlow(resp.Items);
+        return {
+            flows: !resp.Items ? [] : this.recordsToFlow(resp.Items),
+            limit: filters?.limit,
+            nextPageToken: resp.LastEvaluatedKey?.flowId?.S ? this.encodePageToken(resp.LastEvaluatedKey.flowId.S) : undefined,
+        };
     }
 
     async getFlowById(flowId: string): Promise<Flow | null> {
