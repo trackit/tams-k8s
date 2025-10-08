@@ -98,9 +98,13 @@ export class DDBFlowsImpl implements FlowRepository {
     }
 
     private decodePageToken(pageToken: string) {
-        const decoded = Buffer.from(pageToken, 'base64url').toString('utf8');
-        Joi.assert(decoded, Joi.string().uuid().required());
-        return decoded;
+        try {
+            const decoded = Buffer.from(pageToken, 'base64url').toString('utf8');
+            Joi.assert(decoded, Joi.string().uuid().required());
+            return decoded;
+        } catch (e) {
+            throw new InvalidPageTokenError();
+        }
     }
 
     // TODO(arthur): implement timerange filtering
@@ -111,12 +115,8 @@ export class DDBFlowsImpl implements FlowRepository {
         let nameInc = 0;
         let exclusiveStartKey: Record<string, AttributeValue> | undefined = undefined;
         if (filters?.pageToken) {
-            try {
-                const decoded = this.decodePageToken(filters.pageToken);
-                exclusiveStartKey = marshall({ flowId: decoded });
-            } catch (e) {
-                throw new InvalidPageTokenError();
-            }
+            const decoded = this.decodePageToken(filters.pageToken);
+            exclusiveStartKey = marshall({ flowId: decoded });
         }
         if (filters?.sourceId) {
             filterExpr.push('sourceId = :sourceId');
@@ -135,11 +135,11 @@ export class DDBFlowsImpl implements FlowRepository {
             exprAttrVal[':label'] = { S: filters.label };
         }
         if (filters?.frameWidth) {
-            filterExpr.push('frameWidth = :frameWidth');
+            filterExpr.push('essenceParameters.frameWidth = :frameWidth');
             exprAttrVal[':frameWidth'] = { N: filters.frameWidth.toString() };
         }
         if (filters?.frameHeight) {
-            filterExpr.push('frameHeight = :frameHeight');
+            filterExpr.push('essenceParameters.frameHeight = :frameHeight');
             exprAttrVal[':frameHeight'] = { N: filters.frameHeight.toString() };
         }
         Object.entries(filters?.tags ?? {}).forEach(([key, value]) => {
