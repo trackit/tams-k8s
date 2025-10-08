@@ -72,7 +72,7 @@ export class MemoryFlowsImpl implements FlowRepository {
         }
         if (filters?.pageToken) {
             const decoded = this.decodePageToken(filters.pageToken);
-            const index = this.flows.findIndex(({ flowId }) => flowId === decoded);
+            const index = filteredFlows.findIndex(({ flowId }) => flowId === decoded);
             if (index === -1) {
                 throw new InvalidPageTokenError();
             }
