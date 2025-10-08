@@ -60,3 +60,42 @@ export interface GetFlowReadOnlyPathParams {
 export interface PutFlowReadOnlyPathParams {
     flowId: string;
 }
+
+// Flow collection
+export interface GetFlowFlowCollectionPathParams {
+    flowId: string;
+}
+
+export interface PutFlowFlowCollectionPathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowFlowCollectionPathParams {
+    flowId: string;
+}
+
+// Max bit rate
+export interface GetFlowMaxBitRatePathParams {
+    flowId: string;
+}
+
+export interface PutFlowMaxBitRatePathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowMaxBitRatePathParams {
+    flowId: string;
+}
+
+// Avg bit rate
+export interface GetFlowAvgBitRatePathParams {
+    flowId: string;
+}
+
+export interface PutFlowAvgBitRatePathParams {
+    flowId: string;
+}
+
+export interface DeleteFlowAvgBitRatePathParams {
+    flowId: string;
+}

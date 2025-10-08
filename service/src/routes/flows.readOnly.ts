@@ -11,7 +11,7 @@ import { ValidatedRequest } from 'express-joi-validation';
 import { BackendManager } from '../backend/manager';
 import { RepositoriesBuilder } from '../repository/builder';
 import { Routes } from './generic';
-import { ForbiddenHttpError, NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from './middlewares';
+import { NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from './middlewares';
 
 export class FlowsReadOnly extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
@@ -23,7 +23,7 @@ export class FlowsReadOnly extends Routes {
             validator.response(flowReadOnlyValidator),
             this.getFlowReadOnly.bind(this),
         );
-        this.route.put<any, void>(
+        this.route.put<any, void, boolean>(
             '/:flowId/read_only',
             validator.params(putFlowReadOnlyPathParamsValidator),
             validator.body(flowReadOnlyValidator.required()),
@@ -35,7 +35,7 @@ export class FlowsReadOnly extends Routes {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        res.json(flow?.readOnly === true);
+        res.json(flow.readOnly === true);
     }
 
     async putFlowReadOnly(req: ValidatedRequest<ParamsBodySchema<PutFlowReadOnlyPathParams, boolean>>, res: Response<void>) {

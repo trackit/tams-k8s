@@ -1,12 +1,12 @@
 import { Response } from 'express';
 import {
-    DeleteFlowDescriptionPathParams,
-    deleteFlowDescriptionPathParamsValidator,
-    flowDescriptionValidator,
-    GetFlowDescriptionPathParams,
-    getFlowDescriptionPathParamsValidator,
-    PutFlowDescriptionPathParams,
-    putFlowDescriptionPathParamsValidator
+    flowMaxBitRateValidator,
+    getFlowMaxBitRatePathParamsValidator,
+    putFlowMaxBitRatePathParamsValidator,
+    deleteFlowMaxBitRatePathParamsValidator,
+    GetFlowMaxBitRatePathParams,
+    PutFlowMaxBitRatePathParams,
+    DeleteFlowMaxBitRatePathParams,
 } from '@tams-k8s/api';
 import { ValidatedRequest } from 'express-joi-validation';
 import { BackendManager } from '../backend/manager';
@@ -14,54 +14,54 @@ import { RepositoriesBuilder } from '../repository/builder';
 import { Routes } from './generic';
 import { ForbiddenHttpError, NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from './middlewares';
 
-export class FlowsDescription extends Routes {
+export class FlowsMaxBitRate extends Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         super(repositories, backends);
 
-        this.route.get<any, string>(
-            '/:flowId/description',
-            validator.params(getFlowDescriptionPathParamsValidator),
-            validator.response(flowDescriptionValidator),
-            this.getFlowDescription.bind(this),
+        this.route.get<any, number>(
+            '/:flowId/max_bit_rate',
+            validator.params(getFlowMaxBitRatePathParamsValidator),
+            validator.response(flowMaxBitRateValidator),
+            this.getFlowMaxBitRate.bind(this),
         );
-        this.route.put<any, void, string>(
-            '/:flowId/description',
-            validator.params(putFlowDescriptionPathParamsValidator),
-            validator.body(flowDescriptionValidator.required()),
-            this.putFlowDescription.bind(this),
+        this.route.put<any, void, number>(
+            '/:flowId/max_bit_rate',
+            validator.params(putFlowMaxBitRatePathParamsValidator),
+            validator.body(flowMaxBitRateValidator.required()),
+            this.putFlowMaxBitRate.bind(this),
         );
         this.route.delete<any, void>(
-            '/:flowId/description',
-            validator.params(deleteFlowDescriptionPathParamsValidator),
-            this.deleteFlowDescription.bind(this),
+            '/:flowId/max_bit_rate',
+            validator.params(deleteFlowMaxBitRatePathParamsValidator),
+            this.deleteFlowMaxBitRate.bind(this),
         );
     }
 
-    async getFlowDescription(req: ValidatedRequest<ParamsSchema<GetFlowDescriptionPathParams>>, res: Response<string>) {
+    async getFlowMaxBitRate(req: ValidatedRequest<ParamsSchema<GetFlowMaxBitRatePathParams>>, res: Response<number>) {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        res.json(flow?.description)
+        res.json(flow?.maxBitRate);
     }
 
-    async putFlowDescription(req: ValidatedRequest<ParamsBodySchema<PutFlowDescriptionPathParams, string>>, res: Response<void>) {
+    async putFlowMaxBitRate(req: ValidatedRequest<ParamsBodySchema<PutFlowMaxBitRatePathParams, number>>, res: Response<void>) {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
         flow.metadataUpdated = new Date();
-        flow.description = req.body;
+        flow.maxBitRate = req.body;
         await flowRepository.putFlow(flow);
         res.sendStatus(204);
     }
 
-    async deleteFlowDescription(req: ValidatedRequest<ParamsSchema<DeleteFlowDescriptionPathParams>>, res: Response<void>) {
+    async deleteFlowMaxBitRate(req: ValidatedRequest<ParamsSchema<DeleteFlowMaxBitRatePathParams>>, res: Response<void>) {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
         flow.metadataUpdated = new Date();
-        flow.description = undefined;
+        flow.maxBitRate = undefined;
         await flowRepository.putFlow(flow);
         res.sendStatus(204);
     }

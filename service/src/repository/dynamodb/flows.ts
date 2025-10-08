@@ -72,7 +72,7 @@ export class DDBFlowsImpl implements FlowRepository {
             maxBitRate: data.maxBitRate,
             segmentDuration: data.segmentDuration,
             timerange: data.timerange,
-            flowCollection: data.flowCollection?.map(this.flowCollectionItemRecordToFlowCollectionItem),
+            flowCollection: data.flowCollection?.map(this.flowCollectionItemRecordToFlowCollectionItem.bind(this)),
             collectedBy: data.collectedBy,
             containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
             format: data.format,
