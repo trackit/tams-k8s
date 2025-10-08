@@ -78,13 +78,17 @@ export class MemoryFlowsImpl implements FlowRepository {
             }
             filteredFlows = filteredFlows.slice(index + 1);
         }
+        let nextPageToken: string | undefined = undefined;
         if (filters?.limit) {
+            if (filteredFlows.length > filters.limit) {
+                nextPageToken = this.encodePageToken(filteredFlows[filters.limit - 1].flowId);
+            }
             filteredFlows = filteredFlows.slice(0, filters.limit);
         }
         return {
             flows: filteredFlows,
             limit: filters?.limit,
-            nextPageToken: filteredFlows.length === filters?.limit ? this.encodePageToken(filteredFlows[filteredFlows.length - 1].flowId) : undefined,
+            nextPageToken,
         };
     }
 
