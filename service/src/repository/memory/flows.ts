@@ -44,7 +44,7 @@ export class MemoryFlowsImpl implements FlowRepository {
                 if (flow.format === FormatUrn.VIDEO || flow.format === FormatUrn.IMAGE) {
                     return flow.essenceParameters.frameWidth === filters.frameWidth;
                 }
-                return false
+                return false;
             });
         }
         if (filters?.frameHeight) {
@@ -52,7 +52,7 @@ export class MemoryFlowsImpl implements FlowRepository {
                 if (flow.format === FormatUrn.VIDEO || flow.format === FormatUrn.IMAGE) {
                     return flow.essenceParameters.frameHeight === filters.frameHeight;
                 }
-                return false
+                return false;
             });
         }
         if (filters?.tags) {
@@ -84,7 +84,7 @@ export class MemoryFlowsImpl implements FlowRepository {
         return {
             flows: filteredFlows,
             limit: filters?.limit,
-            nextPageToken: filteredFlows.length && filteredFlows.length === filters?.limit ? this.encodePageToken(filteredFlows[filteredFlows.length - 1].flowId) : undefined,
+            nextPageToken: filteredFlows.length === filters?.limit ? this.encodePageToken(filteredFlows[filteredFlows.length - 1].flowId) : undefined,
         };
     }
 
