@@ -8,6 +8,8 @@ export interface GetFlowsQueryParamsRequest {
     label?: string;
     frame_width?: number;
     frame_height?: number;
+    page?: string;
+    limit: number;
 
     [key: `tags.${string}`]: string;
 

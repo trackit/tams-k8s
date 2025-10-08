@@ -16,6 +16,7 @@ import {
 import { BackendManager } from '../backend/manager';
 import { FlowAdapter } from '../repository/adapters/flow.adapter';
 import { RepositoriesBuilder } from '../repository/builder';
+import { InvalidPageTokenError } from '../repository/errors';
 import { FlowsAvgBitRate } from './flows.avgBitRate';
 import { FlowsDescription } from './flows.description';
 import { FlowsFlowCollection } from './flows.flowCollection';
@@ -75,6 +76,12 @@ export class FlowsRoutes extends Routes {
         this.route.use(flowAvgBitRateRoutes.getRoutes());
     }
 
+    private buildNextPageUrl(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, nextPageToken: string): string {
+        const url = new URL(`${req.protocol}://${req.host}${req.originalUrl}`);
+        url.searchParams.set('page', nextPageToken);
+        return url.toString();
+    }
+
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
         const flowRepo = this.repositories.getFlowRepository();
         const tags: Record<string, string> = {};
@@ -91,22 +98,37 @@ export class FlowsRoutes extends Routes {
             if (key.startsWith('tag.') && typeof value === 'string') {
                 tags[key.replace('tag.', '')] = value;
             }
-        })
-        const flows = await flowRepo.listFlows({
-            sourceId: req.query.source_id,
-            timerange: req.query.timerange,
-            flowFormat: req.query.format,
-            codec: req.query.codec,
-            label: req.query.label,
-            frameWidth: req.query.frame_width,
-            frameHeight: req.query.frame_height,
-            tags,
-            haveTags,
-            doesNotHaveTags
         });
-        res.json(flows.map((flow) => (FlowAdapter.toApi(flow))));
+        try {
+            const list = await flowRepo.listFlows({
+                sourceId: req.query.source_id,
+                timerange: req.query.timerange,
+                flowFormat: req.query.format,
+                codec: req.query.codec,
+                label: req.query.label,
+                frameWidth: req.query.frame_width,
+                frameHeight: req.query.frame_height,
+                limit: req.query.limit,
+                pageToken: req.query.page,
+                tags,
+                haveTags,
+                doesNotHaveTags
+            });
+            if (list.limit !== undefined) res.header('X-Paging-Limit', list.limit.toString());
+            if (list.nextPageToken !== undefined) {
+                res.header('X-Paging-NextKey', list.nextPageToken);
+                res.header('Link', `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`);
+            }
+            res.json(list.flows.map((flow) => (FlowAdapter.toApi(flow))));
+        } catch (e) {
+            if (e instanceof InvalidPageTokenError) {
+                throw new BadRequestHttpError(e.message);
+            }
+            throw e;
+        }
     }
 
+    // TODO(arthur): implement query params (timerange and include_timerange)
     private async getFlow(req: ValidatedRequest<ParamsQSSchema<GetFlowPathParams, GetFlowQueryParamsRequest>>, res: Response<Flow>) {
         const flowRepository = this.repositories.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);

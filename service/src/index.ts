@@ -11,6 +11,9 @@ const config = readConfig();
 const main = async () => {
     const PORT = parseInt(process.env.PORT || '3000', 10);
     const app = express();
+    app.disable('x-powered-by');
+    app.set('trust proxy', true);
+    app.set('env', process.env.NODE_ENV || 'development');
 
     // enable receiving json
     app.use(bodyParser);

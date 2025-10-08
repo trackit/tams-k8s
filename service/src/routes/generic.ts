@@ -10,7 +10,9 @@ export class Routes {
     constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
         this.repositories = repositories;
         this.backends = backends;
-        this.route = express.Router();
+        this.route = express.Router({
+            mergeParams: true,
+        });
     }
 
     getRoutes() {
