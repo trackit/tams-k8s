@@ -1,52 +1,41 @@
-import { log } from '@tams-k8s/logger';
 import { readFileSync } from 'fs';
 import YAML from 'yaml';
 import { ConfigParserError } from './error';
 import type { Config } from './type';
 import { configValidator } from './validator';
 
-export const readConfig = (): Config => {
-    return {
-        database: {
-            type: 'dynamodb',
-            flowTableName: 'k8s-tams-test',
-            serviceTableName: 'k8s-tams-test-service',
-        },
-        // database: {
-        //     type: 'memory'
-        // },
-        backends: [{
-            type: 's3',
-            id: '0bdaaf7b-fa77-4f78-928c-df8ce71845e3',
-            bucketName: 'k8s-tams-test',
-            default: true,
-        }],
-        logs: {
-            level: 'debug'
-        }
-    };
-};
-
 export class ConfigReader {
-    private parsedConfig: Record<string, any> | undefined;
+    private parsedFile: Record<string, any> | undefined;
+    private cachedConfig: Config | undefined;
 
-    constructor(private readonly path?: string) {
-
+    private getConfigFilePath(): string | undefined {
+        const configPathCliKey = '--config-path=';
+        for (const arg of process.argv) {
+            if (arg.startsWith(configPathCliKey)) {
+                return arg.slice(configPathCliKey.length);
+            }
+        }
+        const configPathEnvKey = 'TAMS_CONFIG_PATH';
+        if (process.env[configPathEnvKey]) {
+            return process.env[configPathEnvKey];
+        }
+        return './config/default.yaml';
     }
 
     private readConfigFile() {
-        if (this.path) {
-            const configFile = readFileSync(this.path, 'utf8');
-            switch (this.path.split('.').slice(-1)[0]) {
+        const path = this.getConfigFilePath();
+        if (path) {
+            const configFile = readFileSync(path, 'utf8');
+            switch (path.split('.').slice(-1)[0]) {
                 case 'json':
-                    this.parsedConfig = JSON.parse(configFile);
+                    this.parsedFile = JSON.parse(configFile);
                     break;
                 case 'yaml':
                 case 'yml':
-                    this.parsedConfig = YAML.parse(configFile);
+                    this.parsedFile = YAML.parse(configFile);
                     break;
                 default:
-                    log.warn('Unknown config file type, ignoring configuration', { path: this.path });
+                    console.warn('Unknown config file type, ignoring configuration', { path });
             }
         }
     }
@@ -62,8 +51,8 @@ export class ConfigReader {
         if (process.env[envKey]) {
             return process.env[envKey];
         }
-        if (this.parsedConfig) {
-            const value = keyPath.reduce((obj, key) => obj?.[key], this.parsedConfig);
+        if (this.parsedFile) {
+            const value = keyPath.reduce((obj, key) => obj?.[key], this.parsedFile);
             if (value) {
                 return value;
             }
@@ -95,8 +84,8 @@ export class ConfigReader {
             if (Array.isArray(parsedFromEnv)) return parsedFromEnv;
             return [];
         }
-        if (this.parsedConfig) {
-            const value = keyPath.reduce((obj, key) => obj?.[key], this.parsedConfig);
+        if (this.parsedFile) {
+            const value = keyPath.reduce((obj, key) => obj?.[key], this.parsedFile);
             if (value && Array.isArray(value)) {
                 return value;
             }
@@ -129,7 +118,6 @@ export class ConfigReader {
     private parseBackendsBlock(): Array<{ [k: string]: any }> {
         const backends = this.parseArray(['backends']);
         return backends.map((backend: any) => {
-            console.log(backend.type);
             const type = backend.type;
             switch (type) {
                 case 's3':
@@ -155,15 +143,46 @@ export class ConfigReader {
         };
     }
 
-    getConfig() {
+    private parseServerBlock(): { [k: string]: any } {
+        return {
+            port: this.parseKey(['server', 'port'], '3000'),
+        }
+    }
+
+    private validateDefault(conf: Config) {
+        let hasOneDefault = false;
+        for (const backend of conf.backends) {
+            if (backend.default && !hasOneDefault) {
+                hasOneDefault = true;
+            } else if (backend.default) {
+                throw new ConfigParserError('Only one backend can be default');
+            }
+        }
+        if (!hasOneDefault) {
+            throw new ConfigParserError('At least one backend must be default');
+        }
+    }
+
+    getConfig(): Config {
         this.readConfigFile();
         const config = {
             database: this.parseDatabaseBlock(),
             backends: this.parseBackendsBlock(),
             logs: this.parseLogsBlock(),
+            server: this.parseServerBlock(),
         };
-        console.log(config, configValidator.validate(config));
+        const { value, error } = configValidator.validate(config, { convert: true });
+        if (error) {
+            throw error;
+        }
+        this.validateDefault(value);
+        return value;
+    }
+
+    getCachedConfig(): Config {
+        if (!this.cachedConfig) {
+            this.cachedConfig = this.getConfig();
+        }
+        return this.cachedConfig;
     }
 }
-
-new ConfigReader('./config/default.yaml').getConfig();

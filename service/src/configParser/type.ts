@@ -1,4 +1,4 @@
-// Database configParser
+// Database config
 export interface DynamoDBConfig {
     type: 'dynamodb';
     flowTableName: string;
@@ -13,7 +13,7 @@ export interface MemoryDBConfig {
 
 export type DBConfig = DynamoDBConfig | MemoryDBConfig;
 
-// Backend configParser
+// Backend config
 interface CommonBackendConfig {
     id: string;
     default?: boolean;
@@ -28,13 +28,19 @@ export interface S3BackendConfig extends CommonBackendConfig {
 
 export type BackendConfig = S3BackendConfig;
 
-// Log configParser
+// Log config
 export interface LogConfig {
     level: 'debug' | 'info' | 'warn' | 'error';
+}
+
+// Server config
+export interface ServerConfig {
+    port: number;
 }
 
 export interface Config {
     database: DBConfig;
     backends: BackendConfig[];
     logs: LogConfig;
+    server: ServerConfig;
 }

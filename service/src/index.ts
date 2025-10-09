@@ -1,15 +1,14 @@
 import express from 'express';
 import { log } from '@tams-k8s/logger';
 import { BackendManager } from './backend/manager';
-import { readConfig } from './configParser/reader';
+import { ConfigReader } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
 import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
 
-const config = readConfig();
+const config = new ConfigReader().getCachedConfig();
 
 const main = async () => {
-    const PORT = parseInt(process.env.PORT || '3000', 10);
     const app = express();
     app.disable('x-powered-by');
     app.set('trust proxy', true);
@@ -36,7 +35,7 @@ const main = async () => {
     app.use(validationHelper);
     app.use(errorHandler);
 
-    app.listen(PORT, () => log.info(`Server is running on port ${PORT}`));
+    app.listen(config.server.port, () => log.info(`Server is running on port ${config.server.port}`));
 };
 main().catch((err) => {
     log.error(err);

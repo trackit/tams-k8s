@@ -1,12 +1,12 @@
 import { createLogger, format, transports } from 'winston';
-import { readConfig } from "../configParser/reader";
+import { ConfigReader } from "../configParser/reader";
 
-const config = readConfig();
+const config = new ConfigReader().getCachedConfig();
 
 export const log = createLogger({
     transports: [
         new transports.Console()
     ],
     format: format.simple(),
-    level: config.logs.level
+    level: config.logs.level ?? 'info'
 });
