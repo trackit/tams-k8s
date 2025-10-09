@@ -40,24 +40,32 @@ export class ConfigReader {
         }
     }
 
-    private parseKey(keyPath: string[], defaultValue?: string): any {
+    private parseType<T>(value: string, type?: 'number'): T {
+        if (!type) return value as T;
+        switch (type) {
+            case 'number':
+                return Number(value) as T;
+        }
+    }
+
+    private parseKey<T = string>(keyPath: string[], defaultValue?: T, type?: 'number'): T {
         const cliKey = `--${keyPath.join('-').replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}=`;
         for (const arg of process.argv) {
             if (arg.startsWith(cliKey)) {
-                return arg.slice(cliKey.length);
+                return this.parseType<T>(arg.slice(cliKey.length), type);
             }
         }
         const envKey = `TAMS_${keyPath.join('_').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).toUpperCase()}`;
         if (process.env[envKey]) {
-            return process.env[envKey];
+            return this.parseType(process.env[envKey], type);
         }
         if (this.parsedFile) {
-            const value = keyPath.reduce((obj, key) => obj?.[key], this.parsedFile);
+            const value = keyPath.reduce<any>((obj, key) => obj?.[key], this.parsedFile);
             if (value) {
-                return value;
+                return this.parseType(value, type);
             }
         }
-        return defaultValue;
+        return defaultValue as T;
     }
 
     private parseArray(keyPath: string[]): Array<any> {
@@ -145,7 +153,7 @@ export class ConfigReader {
 
     private parseServerBlock(): { [k: string]: any } {
         return {
-            port: this.parseKey(['server', 'port'], '3000'),
+            port: this.parseKey<number>(['server', 'port'], 3000, 'number'),
         }
     }
 
