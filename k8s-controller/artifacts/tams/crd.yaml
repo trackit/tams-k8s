@@ -4,6 +4,7 @@ metadata:
   name: stores.tams.trackit.io
 spec:
   group: tams.trackit.io
+  preserveUnknownFields: false
   versions:
     - name: v1alpha1
       served: true
@@ -21,12 +22,22 @@ spec:
                   type: integer
                   minimum: 1
                   maximum: 10
+                logs:
+                  type: object
+                  properties:
+                    level:
+                      type: string
+                      enum: [debug, info, warn, error]
             status:
               type: object
               properties:
                 availableReplicas:
                   type: integer
+          required:
+            - spec
+      subresources:
+        status: {}
   names:
     kind: Store
-    plural: Stores
+    plural: stores
   scope: Namespaced

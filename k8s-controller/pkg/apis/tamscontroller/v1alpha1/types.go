@@ -18,13 +18,19 @@ type Store struct {
 
 // StoreSpec is the spec for a Foo resource
 type StoreSpec struct {
-	DeploymentName string `json:"deploymentName"`
-	Replicas       *int32 `json:"replicas"`
+	Logs           StoreLogsCfg `json:"logs"`
+	DeploymentName string       `json:"deploymentName"`
+	Replicas       *int32       `json:"replicas"`
 }
 
 // StoreStatus is the status for a Foo resource
 type StoreStatus struct {
 	AvailableReplicas int32 `json:"availableReplicas"`
+}
+
+// StoreLogsCfg is the log configuration for a Store resource
+type StoreLogsCfg struct {
+	Level string `json:"level"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

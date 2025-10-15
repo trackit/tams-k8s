@@ -48,7 +48,14 @@ func main() {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	tamsInformerFactory := informers.NewSharedInformerFactory(tamsClient, time.Second*30)
 
-	controller := NewController(ctx, kubeClient, tamsClient, kubeInformerFactory.Apps().V1().Deployments(), tamsInformerFactory.Tamscontroller().V1alpha1().Stores())
+	controller := NewController(
+		ctx,
+		kubeClient,
+		tamsClient,
+		kubeInformerFactory.Apps().V1().Deployments(),
+		kubeInformerFactory.Core().V1().ConfigMaps(),
+		tamsInformerFactory.Tamscontroller().V1alpha1().Stores(),
+	)
 
 	kubeInformerFactory.Start(ctx.Done())
 	tamsInformerFactory.Start(ctx.Done())

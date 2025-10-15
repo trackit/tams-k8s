@@ -13,10 +13,12 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	appsinformers "k8s.io/client-go/informers/apps/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
@@ -47,10 +49,12 @@ type Controller struct {
 
 	deploymentsLister appslisters.DeploymentLister
 	deploymentsSynced cache.InformerSynced
+	configmapLister   corelisters.ConfigMapLister
+	configmapSynced   cache.InformerSynced
 	storesLister      listers.StoreLister
 	storesSynced      cache.InformerSynced
 
-	// workqueue is a rate limited work queue. This is used to queue work to be
+	// workqueue is a rate-limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
 	// means we can ensure we only process a fixed amount of resources at a
 	// time, and makes it easy to ensure we are never processing the same item
@@ -66,6 +70,7 @@ func NewController(
 	kubeclientset kubernetes.Interface,
 	storeclientset clientset.Interface,
 	deploymentInformer appsinformers.DeploymentInformer,
+	configmapInformer coreinformers.ConfigMapInformer,
 	storeInformer informers.StoreInformer,
 ) *Controller {
 	logger := klog.FromContext(ctx)
@@ -90,6 +95,8 @@ func NewController(
 		storeclientset:    storeclientset,
 		deploymentsLister: deploymentInformer.Lister(),
 		deploymentsSynced: deploymentInformer.Informer().HasSynced,
+		configmapLister:   configmapInformer.Lister(),
+		configmapSynced:   configmapInformer.Informer().HasSynced,
 		storesLister:      storeInformer.Lister(),
 		storesSynced:      storeInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewTypedRateLimitingQueue(rateLimiter),
@@ -104,7 +111,7 @@ func NewController(
 			controller.enqueueStore(new)
 		},
 	})
-	// Set u an event handler for when Deployment resources change. This
+	// Set up an event handler for when Deployment resources change. This
 	// handler will lookup the owner of the given Deployment, and if it is
 	// owned by a TAMS resource then the handler will enqueue that TAMS resource for
 	// processing. This way, we don't need to implement custom logic for
@@ -118,6 +125,19 @@ func NewController(
 			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
 				// Periodic resync will send update events for all known Deployments.
 				// Two different versions of the same Deployment will always have different ResourceVersion.
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+
+	configmapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*corev1.ConfigMap)
+			oldDepl := old.(*corev1.ConfigMap)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
 				return
 			}
 			controller.handleObject(new)
@@ -148,7 +168,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	}
 
 	logger.Info("Starting workers", "count", workers)
-	// Launch two workers to process Store resources
+	// Launch n-workers to process Store resources
 	for i := 0; i < workers; i++ {
 		go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 	}
@@ -223,9 +243,9 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 
 	deploymentName := store.Spec.DeploymentName
 	if deploymentName == "" {
-		// We choose to absorb the error here as the worker would requeue the
-		// resource otherwise. Instead, the next time the resource is updated
-		// the resource will be queued again.
+		// We absorb the error here as the worker would requeue the resource
+		// otherwise. Instead, the next time the resource is updated, the
+		// resource will be queued again.
 		utilruntime.HandleErrorWithContext(ctx, nil, "Deployment name missing from object reference", "objectReference", objectRef)
 		return nil
 	}
@@ -238,16 +258,36 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later. This could have been caused by a
-	// temporary network failure, os any other transient reason.
+	// attempt processing again later.
 	if err != nil {
 		return err
 	}
 
-	// If the Deployment is not controlled by this Store resource, we should log
-	// a warning to the event recorder and return error msg.
+	// Get the configmap with the name specified in Store
+	configmap, err := c.configmapLister.ConfigMaps(store.Namespace).Get(store.Name)
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Create(ctx, newCfgMap(store), metav1.CreateOptions{FieldManager: FieldManager})
+	}
+
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later.
+	if err != nil {
+		return err
+	}
+
+	// If the Deployment is not controlled by this Store resource, we log a
+	// warning to the event recorder and return an error message.
 	if !metav1.IsControlledBy(deployment, store) {
 		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	// If the Configmap is not controlled by this Store resource, we log a
+	// warning to the event recorder and return an error message.
+	if !metav1.IsControlledBy(configmap, store) {
+		msg := fmt.Sprintf(MessageResourceExists, configmap.Name)
 		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
 		return fmt.Errorf("%s", msg)
 	}
@@ -311,14 +351,14 @@ func (c *Controller) handleObject(obj interface{}) {
 	if object, ok = obj.(metav1.Object); !ok {
 		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
 		if !ok {
-			// If the object value is not too big and does not contain sensitive information then
+			// If the object value is not too big and does not contain sensitive information, then
 			// it may be useful to include it.
 			utilruntime.HandleErrorWithContext(context.Background(), nil, "Error decoding object, invalid type", "type", fmt.Sprintf("%T", obj))
 			return
 		}
 		object, ok = tombstone.Obj.(metav1.Object)
 		if !ok {
-			// If the object value is not too big and does not contain sensitive information then
+			// If the object value is not too big and does not contain sensitive information, then
 			// it may be useful to include it.
 			utilruntime.HandleErrorWithContext(context.Background(), nil, "Error decoding object tombstone, invalid type", "type", fmt.Sprintf("%T", tombstone.Obj))
 			return
@@ -341,6 +381,26 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		c.enqueueStore(store)
 		return
+	}
+}
+
+func newCfgMap(store *tamsv1alpha1.Store) *corev1.ConfigMap {
+	labels := map[string]string{
+		"app":        "tams-store",
+		"controller": store.Name,
+	}
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      store.Name,
+			Namespace: store.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(store, tamsv1alpha1.SchemeGroupVersion.WithKind("Store")),
+			},
+			Labels: labels,
+		},
+		Data: map[string]string{
+			"config.json": "test",
+		},
 	}
 }
 
