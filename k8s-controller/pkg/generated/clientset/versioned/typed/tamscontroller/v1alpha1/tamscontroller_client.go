@@ -27,7 +27,7 @@ import (
 
 type TamscontrollerV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	FoosGetter
+	StoresGetter
 }
 
 // TamscontrollerV1alpha1Client is used to interact with features provided by the tamscontroller.trackit.io group.
@@ -35,8 +35,8 @@ type TamscontrollerV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *TamscontrollerV1alpha1Client) Foos(namespace string) FooInterface {
-	return newFoos(c, namespace)
+func (c *TamscontrollerV1alpha1Client) Stores(namespace string) StoreInterface {
+	return newStores(c, namespace)
 }
 
 // NewForConfig creates a new TamscontrollerV1alpha1Client for the given config.

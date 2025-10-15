@@ -24,24 +24,24 @@ import (
 	gentype "k8s.io/client-go/gentype"
 )
 
-// fakeFoos implements FooInterface
-type fakeFoos struct {
-	*gentype.FakeClientWithList[*v1alpha1.Foo, *v1alpha1.FooList]
+// fakeStores implements StoreInterface
+type fakeStores struct {
+	*gentype.FakeClientWithList[*v1alpha1.Store, *v1alpha1.StoreList]
 	Fake *FakeTamscontrollerV1alpha1
 }
 
-func newFakeFoos(fake *FakeTamscontrollerV1alpha1, namespace string) tamscontrollerv1alpha1.FooInterface {
-	return &fakeFoos{
-		gentype.NewFakeClientWithList[*v1alpha1.Foo, *v1alpha1.FooList](
+func newFakeStores(fake *FakeTamscontrollerV1alpha1, namespace string) tamscontrollerv1alpha1.StoreInterface {
+	return &fakeStores{
+		gentype.NewFakeClientWithList[*v1alpha1.Store, *v1alpha1.StoreList](
 			fake.Fake,
 			namespace,
-			v1alpha1.SchemeGroupVersion.WithResource("foos"),
-			v1alpha1.SchemeGroupVersion.WithKind("Foo"),
-			func() *v1alpha1.Foo { return &v1alpha1.Foo{} },
-			func() *v1alpha1.FooList { return &v1alpha1.FooList{} },
-			func(dst, src *v1alpha1.FooList) { dst.ListMeta = src.ListMeta },
-			func(list *v1alpha1.FooList) []*v1alpha1.Foo { return gentype.ToPointerSlice(list.Items) },
-			func(list *v1alpha1.FooList, items []*v1alpha1.Foo) { list.Items = gentype.FromPointerSlice(items) },
+			v1alpha1.SchemeGroupVersion.WithResource("stores"),
+			v1alpha1.SchemeGroupVersion.WithKind("Store"),
+			func() *v1alpha1.Store { return &v1alpha1.Store{} },
+			func() *v1alpha1.StoreList { return &v1alpha1.StoreList{} },
+			func(dst, src *v1alpha1.StoreList) { dst.ListMeta = src.ListMeta },
+			func(list *v1alpha1.StoreList) []*v1alpha1.Store { return gentype.ToPointerSlice(list.Items) },
+			func(list *v1alpha1.StoreList, items []*v1alpha1.Store) { list.Items = gentype.FromPointerSlice(items) },
 		),
 		fake,
 	}

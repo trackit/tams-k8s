@@ -31,71 +31,71 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// FooInformer provides access to a shared informer and lister for
-// Foos.
-type FooInformer interface {
+// StoreInformer provides access to a shared informer and lister for
+// Stores.
+type StoreInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() tamscontrollerv1alpha1.FooLister
+	Lister() tamscontrollerv1alpha1.StoreLister
 }
 
-type fooInformer struct {
+type storeInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewFooInformer constructs a new informer for Foo type.
+// NewStoreInformer constructs a new informer for Store type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFooInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredFooInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewStoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredStoreInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredFooInformer constructs a new informer for Foo type.
+// NewFilteredStoreInformer constructs a new informer for Store type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredFooInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredStoreInformer(client versioned.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TamscontrollerV1alpha1().Foos(namespace).List(context.Background(), options)
+				return client.TamscontrollerV1alpha1().Stores(namespace).List(context.Background(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TamscontrollerV1alpha1().Foos(namespace).Watch(context.Background(), options)
+				return client.TamscontrollerV1alpha1().Stores(namespace).Watch(context.Background(), options)
 			},
 			ListWithContextFunc: func(ctx context.Context, options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TamscontrollerV1alpha1().Foos(namespace).List(ctx, options)
+				return client.TamscontrollerV1alpha1().Stores(namespace).List(ctx, options)
 			},
 			WatchFuncWithContext: func(ctx context.Context, options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.TamscontrollerV1alpha1().Foos(namespace).Watch(ctx, options)
+				return client.TamscontrollerV1alpha1().Stores(namespace).Watch(ctx, options)
 			},
 		},
-		&apistamscontrollerv1alpha1.Foo{},
+		&apistamscontrollerv1alpha1.Store{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *fooInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredFooInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *storeInformer) defaultInformer(client versioned.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredStoreInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *fooInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&apistamscontrollerv1alpha1.Foo{}, f.defaultInformer)
+func (f *storeInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&apistamscontrollerv1alpha1.Store{}, f.defaultInformer)
 }
 
-func (f *fooInformer) Lister() tamscontrollerv1alpha1.FooLister {
-	return tamscontrollerv1alpha1.NewFooLister(f.Informer().GetIndexer())
+func (f *storeInformer) Lister() tamscontrollerv1alpha1.StoreLister {
+	return tamscontrollerv1alpha1.NewStoreLister(f.Informer().GetIndexer())
 }

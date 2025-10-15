@@ -17,10 +17,10 @@ limitations under the License.
 
 package v1alpha1
 
-// FooListerExpansion allows custom methods to be added to
-// FooLister.
-type FooListerExpansion interface{}
+// StoreListerExpansion allows custom methods to be added to
+// StoreLister.
+type StoreListerExpansion interface{}
 
-// FooNamespaceListerExpansion allows custom methods to be added to
-// FooNamespaceLister.
-type FooNamespaceListerExpansion interface{}
+// StoreNamespaceListerExpansion allows custom methods to be added to
+// StoreNamespaceLister.
+type StoreNamespaceListerExpansion interface{}

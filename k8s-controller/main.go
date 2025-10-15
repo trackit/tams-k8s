@@ -39,16 +39,16 @@ func main() {
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 
-	exampleClient, err := clientset.NewForConfig(cfg)
+	tamsClient, err := clientset.NewForConfig(cfg)
 	if err != nil {
 		logger.Error(err, "Error building kubernetes clientset")
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}
 
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
-	tamsInformerFactory := informers.NewSharedInformerFactory(exampleClient, time.Second*30)
+	tamsInformerFactory := informers.NewSharedInformerFactory(tamsClient, time.Second*30)
 
-	controller := NewController(ctx, kubeClient, exampleClient, kubeInformerFactory.Apps().V1().Deployments(), tamsInformerFactory.Tamscontroller().V1alpha1().Foos())
+	controller := NewController(ctx, kubeClient, tamsClient, kubeInformerFactory.Apps().V1().Deployments(), tamsInformerFactory.Tamscontroller().V1alpha1().Stores())
 
 	kubeInformerFactory.Start(ctx.Done())
 	tamsInformerFactory.Start(ctx.Done())

@@ -28,8 +28,8 @@ type FakeTamscontrollerV1alpha1 struct {
 	*testing.Fake
 }
 
-func (c *FakeTamscontrollerV1alpha1) Foos(namespace string) v1alpha1.FooInterface {
-	return newFakeFoos(c, namespace)
+func (c *FakeTamscontrollerV1alpha1) Stores(namespace string) v1alpha1.StoreInterface {
+	return newFakeStores(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate

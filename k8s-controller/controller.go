@@ -24,7 +24,7 @@ import (
 
 	tamsv1alpha1 "k8s-controller/pkg/apis/tamscontroller/v1alpha1"
 	clientset "k8s-controller/pkg/generated/clientset/versioned"
-	samplescheme "k8s-controller/pkg/generated/clientset/versioned/scheme"
+	storescheme "k8s-controller/pkg/generated/clientset/versioned/scheme"
 	informers "k8s-controller/pkg/generated/informers/externalversions/tamscontroller/v1alpha1"
 	listers "k8s-controller/pkg/generated/listers/tamscontroller/v1alpha1"
 )
@@ -42,13 +42,13 @@ const (
 type Controller struct {
 	// kubeclientset is a standard kubernetes clientset
 	kubeclientset kubernetes.Interface
-	// sampleclientset is a clientset for TAMS API group
-	sampleclientset clientset.Interface
+	// storeclientset is a clientset for TAMS API group
+	storeclientset clientset.Interface
 
 	deploymentsLister appslisters.DeploymentLister
 	deploymentsSynced cache.InformerSynced
-	foosLister        listers.FooLister
-	foosSynced        cache.InformerSynced
+	storesLister      listers.StoreLister
+	storesSynced      cache.InformerSynced
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
 	// processed instead of performing it as soon as a change happens. This
@@ -64,16 +64,16 @@ type Controller struct {
 func NewController(
 	ctx context.Context,
 	kubeclientset kubernetes.Interface,
-	sampleclientset clientset.Interface,
+	storeclientset clientset.Interface,
 	deploymentInformer appsinformers.DeploymentInformer,
-	fooInformer informers.FooInformer,
+	storeInformer informers.StoreInformer,
 ) *Controller {
 	logger := klog.FromContext(ctx)
 
 	// Create event broadcaster
 	// Add tams-controller types to the default Kubernetes Scheme so Events can be
 	// logged for tams-controller types.
-	utilruntime.Must(samplescheme.AddToScheme(scheme.Scheme))
+	utilruntime.Must(storescheme.AddToScheme(scheme.Scheme))
 	logger.V(4).Info("Creating event broadcaster")
 
 	eventBroadcaster := record.NewBroadcaster(record.WithContext(ctx))
@@ -87,21 +87,21 @@ func NewController(
 
 	controller := &Controller{
 		kubeclientset:     kubeclientset,
-		sampleclientset:   sampleclientset,
+		storeclientset:    storeclientset,
 		deploymentsLister: deploymentInformer.Lister(),
 		deploymentsSynced: deploymentInformer.Informer().HasSynced,
-		foosLister:        fooInformer.Lister(),
-		foosSynced:        fooInformer.Informer().HasSynced,
+		storesLister:      storeInformer.Lister(),
+		storesSynced:      storeInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewTypedRateLimitingQueue(rateLimiter),
 		recorder:          recorder,
 	}
 
 	logger.Info("Setting up event handlers")
 	// Set up an event handler for when TAMS resources change
-	fooInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.enqueueFoo,
+	storeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.enqueueStore,
 		UpdateFunc: func(old, new interface{}) {
-			controller.enqueueFoo(new)
+			controller.enqueueStore(new)
 		},
 	})
 	// Set u an event handler for when Deployment resources change. This
@@ -143,7 +143,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	// Wait for the caches to be synced before starting workers
 	logger.Info("Waiting for informer caches to sync")
 
-	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.foosSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -209,7 +209,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	logger := klog.LoggerWithValues(klog.FromContext(ctx), "objectRef", objectRef)
 
 	// Get the Foo resource with this namespace/name
-	foo, err := c.foosLister.Foos(objectRef.Namespace).Get(objectRef.Name)
+	foo, err := c.storesLister.Stores(objectRef.Namespace).Get(objectRef.Name)
 	if err != nil {
 		// The Foo resource may no longer exist, in which case we stop
 		// processing.
@@ -269,7 +269,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 
 	// Finally, we update the status block of the Foo resource to reflect the
 	// current state of the world
-	err = c.updateFooStatus(ctx, foo, deployment)
+	err = c.updateStoreStatus(ctx, foo, deployment)
 	if err != nil {
 		return err
 	}
@@ -278,24 +278,24 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	return nil
 }
 
-func (c *Controller) updateFooStatus(ctx context.Context, foo *tamsv1alpha1.Foo, deployment *appsv1.Deployment) error {
+func (c *Controller) updateStoreStatus(ctx context.Context, store *tamsv1alpha1.Store, deployment *appsv1.Deployment) error {
 	// Never modify objects from the store. It's a read-only, local cache.
 	// We need to use DeepCopy() to make a deep copy of the original object and modify this copy
 	// Or create a copy manually for better performance
-	fooCopy := foo.DeepCopy()
-	fooCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
+	storeCopy := store.DeepCopy()
+	storeCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
 	// If the CustomResourceSubresources feature gate is not enabled,
 	// we must use Update instead of UpdateStatus to update the Status block of the Foo resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
-	_, err := c.sampleclientset.TamscontrollerV1alpha1().Foos(foo.Namespace).UpdateStatus(ctx, fooCopy, metav1.UpdateOptions{FieldManager: FieldManager})
+	_, err := c.storeclientset.TamscontrollerV1alpha1().Stores(store.Namespace).UpdateStatus(ctx, storeCopy, metav1.UpdateOptions{FieldManager: FieldManager})
 	return err
 }
 
-// enqueueFoo takes a Foo resource and converts it into a namespace/name
+// enqueueStore takes a Foo resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than Foo.
-func (c *Controller) enqueueFoo(obj interface{}) {
+func (c *Controller) enqueueStore(obj interface{}) {
 	if objectRef, err := cache.ObjectToName(obj); err != nil {
 		utilruntime.HandleError(err)
 		return
@@ -333,13 +333,13 @@ func (c *Controller) handleObject(obj interface{}) {
 			return
 		}
 
-		foo, err := c.foosLister.Foos(object.GetNamespace()).Get(ownerRef.Name)
+		foo, err := c.storesLister.Stores(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
 			logger.V(4).Info("Ignore orphaned object", "object", klog.KObj(object), "foo", ownerRef.Name)
 			return
 		}
 
-		c.enqueueFoo(foo)
+		c.enqueueStore(foo)
 		return
 	}
 }
@@ -347,7 +347,7 @@ func (c *Controller) handleObject(obj interface{}) {
 // newDeployment creates a new Deployment for a Foo resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Foo resource that 'owns' it.
-func newDeployment(foo *tamsv1alpha1.Foo) *appsv1.Deployment {
+func newDeployment(foo *tamsv1alpha1.Store) *appsv1.Deployment {
 	labels := map[string]string{
 		"app":        "nginx",
 		"controller": foo.Name,
