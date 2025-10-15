@@ -34,8 +34,8 @@ const controllerAgentName = "tams-controller"
 const (
 	SuccessSynced         = "Synced"
 	ErrResourceExists     = "ErrResourceExists"
-	MessageResourceExists = "Resource %q already exists and is not managed by Foo"
-	MessageResourceSynced = "Foo synced successfully"
+	MessageResourceExists = "Resource %q already exists and is not managed by Store"
+	MessageResourceSynced = "Store synced successfully"
 	FieldManager          = controllerAgentName
 )
 
@@ -138,7 +138,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	logger := klog.FromContext(ctx)
 
 	// Start the informer factories to begin populating the informer caches
-	logger.Info("Starting Foo controller")
+	logger.Info("Starting Store controller")
 
 	// Wait for the caches to be synced before starting workers
 	logger.Info("Waiting for informer caches to sync")
@@ -148,7 +148,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	}
 
 	logger.Info("Starting workers", "count", workers)
-	// Launch two workers to process Foo resources
+	// Launch two workers to process Store resources
 	for i := 0; i < workers; i++ {
 		go wait.UntilWithContext(ctx, c.runWorker, time.Second)
 	}
@@ -202,26 +202,26 @@ func (c *Controller) processNextWorkItem(ctx context.Context) bool {
 	return true
 }
 
-// syncHandler compares the actual state with the desired, and attempts to
-// converge the two. It then updates the Status block of the Foo resource
+// syncHandler compares the actual state with the desired and attempts to
+// converge the two. It then updates the Status block of the Store resource
 // with the current status of the resource.
 func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName) error {
 	logger := klog.LoggerWithValues(klog.FromContext(ctx), "objectRef", objectRef)
 
-	// Get the Foo resource with this namespace/name
-	foo, err := c.storesLister.Stores(objectRef.Namespace).Get(objectRef.Name)
+	// Get the Store resource with this namespace/name
+	store, err := c.storesLister.Stores(objectRef.Namespace).Get(objectRef.Name)
 	if err != nil {
-		// The Foo resource may no longer exist, in which case we stop
+		// The Store resource may no longer exist, in which case we stop
 		// processing.
 		if errors.IsNotFound(err) {
-			utilruntime.HandleErrorWithContext(ctx, err, "Foo referenced by item in work queue no longer exists", "objectReference", objectRef)
+			utilruntime.HandleErrorWithContext(ctx, err, "Store referenced by item in work queue no longer exists", "objectReference", objectRef)
 			return nil
 		}
 
 		return err
 	}
 
-	deploymentName := foo.Spec.DeploymentName
+	deploymentName := store.Spec.DeploymentName
 	if deploymentName == "" {
 		// We choose to absorb the error here as the worker would requeue the
 		// resource otherwise. Instead, the next time the resource is updated
@@ -230,11 +230,11 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return nil
 	}
 
-	// Get the deployment with the name specified in Foo.spec
-	deployment, err := c.deploymentsLister.Deployments(foo.Namespace).Get(deploymentName)
+	// Get the deployment with the name specified in Store.spec
+	deployment, err := c.deploymentsLister.Deployments(store.Namespace).Get(deploymentName)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		deployment, err = c.kubeclientset.AppsV1().Deployments(foo.Namespace).Create(ctx, newDeployment(foo), metav1.CreateOptions{FieldManager: FieldManager})
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.Namespace).Create(ctx, newDeployment(store), metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -244,20 +244,20 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
-	// If the Deployment is not controlled by this Foo resource, we should log
+	// If the Deployment is not controlled by this Store resource, we should log
 	// a warning to the event recorder and return error msg.
-	if !metav1.IsControlledBy(deployment, foo) {
+	if !metav1.IsControlledBy(deployment, store) {
 		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
-		c.recorder.Event(foo, corev1.EventTypeWarning, ErrResourceExists, msg)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
 		return fmt.Errorf("%s", msg)
 	}
 
-	// If this number of the replicas on the Foo resource is specified, and the
+	// If this number of the replicas on the Store resource is specified, and the
 	// number does not equal the current desired replicas on the Deployment, we
 	// should update the Deployment resource.
-	if foo.Spec.Replicas != nil && *foo.Spec.Replicas != *deployment.Spec.Replicas {
-		logger.V(4).Info("Update deployment resource", "currentReplicas", *deployment.Spec.Replicas, "desiredReplicas", *foo.Spec.Replicas)
-		deployment, err = c.kubeclientset.AppsV1().Deployments(foo.Namespace).Update(ctx, newDeployment(foo), metav1.UpdateOptions{FieldManager: FieldManager})
+	if store.Spec.Replicas != nil && *store.Spec.Replicas != *deployment.Spec.Replicas {
+		logger.V(4).Info("Update deployment resource", "currentReplicas", *deployment.Spec.Replicas, "desiredReplicas", *store.Spec.Replicas)
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.Namespace).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Update, we'll requeue the item so we can
@@ -267,14 +267,14 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
-	// Finally, we update the status block of the Foo resource to reflect the
+	// Finally, we update the status block of the Store resource to reflect the
 	// current state of the world
-	err = c.updateStoreStatus(ctx, foo, deployment)
+	err = c.updateStoreStatus(ctx, store, deployment)
 	if err != nil {
 		return err
 	}
 
-	c.recorder.Event(foo, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	c.recorder.Event(store, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
 	return nil
 }
 
@@ -285,16 +285,16 @@ func (c *Controller) updateStoreStatus(ctx context.Context, store *tamsv1alpha1.
 	storeCopy := store.DeepCopy()
 	storeCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
 	// If the CustomResourceSubresources feature gate is not enabled,
-	// we must use Update instead of UpdateStatus to update the Status block of the Foo resource.
+	// we must use Update instead of UpdateStatus to update the Status block of the Store resource.
 	// UpdateStatus will not allow changes to the Spec of the resource,
 	// which is ideal for ensuring nothing other than resource status has been updated.
 	_, err := c.storeclientset.TamscontrollerV1alpha1().Stores(store.Namespace).UpdateStatus(ctx, storeCopy, metav1.UpdateOptions{FieldManager: FieldManager})
 	return err
 }
 
-// enqueueStore takes a Foo resource and converts it into a namespace/name
+// enqueueStore takes a Store resource and converts it into a namespace/name
 // string which is then put onto the work queue. This method should *not* be
-// passed resources of any type other than Foo.
+// passed resources of any type other than Store.
 func (c *Controller) enqueueStore(obj interface{}) {
 	if objectRef, err := cache.ObjectToName(obj); err != nil {
 		utilruntime.HandleError(err)
@@ -329,39 +329,39 @@ func (c *Controller) handleObject(obj interface{}) {
 	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
 		// If this object is not owned by a TAMS, we should not do anything more
 		// with it.
-		if ownerRef.Kind != "Foo" {
+		if ownerRef.Kind != "Store" {
 			return
 		}
 
-		foo, err := c.storesLister.Stores(object.GetNamespace()).Get(ownerRef.Name)
+		store, err := c.storesLister.Stores(object.GetNamespace()).Get(ownerRef.Name)
 		if err != nil {
-			logger.V(4).Info("Ignore orphaned object", "object", klog.KObj(object), "foo", ownerRef.Name)
+			logger.V(4).Info("Ignore orphaned object", "object", klog.KObj(object), "store", ownerRef.Name)
 			return
 		}
 
-		c.enqueueStore(foo)
+		c.enqueueStore(store)
 		return
 	}
 }
 
-// newDeployment creates a new Deployment for a Foo resource. It also sets
+// newDeployment creates a new Deployment for a Store resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
-// the Foo resource that 'owns' it.
-func newDeployment(foo *tamsv1alpha1.Store) *appsv1.Deployment {
+// the Store resource that 'owns' it.
+func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 	labels := map[string]string{
 		"app":        "nginx",
-		"controller": foo.Name,
+		"controller": store.Name,
 	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      foo.Spec.DeploymentName,
-			Namespace: foo.Namespace,
+			Name:      store.Spec.DeploymentName,
+			Namespace: store.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(foo, tamsv1alpha1.SchemeGroupVersion.WithKind("Foo")),
+				*metav1.NewControllerRef(store, tamsv1alpha1.SchemeGroupVersion.WithKind("Store")),
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: foo.Spec.Replicas,
+			Replicas: store.Spec.Replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: labels,
 			},
