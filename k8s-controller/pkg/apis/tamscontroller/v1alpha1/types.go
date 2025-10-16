@@ -18,11 +18,12 @@ type Store struct {
 
 // StoreSpec is the spec for a Foo resource
 type StoreSpec struct {
-	Database StoreDatabaseCfg  `json:"database"`
-	Backends []StoreBackendCfg `json:"backends"`
-	Logs     StoreLogsCfg      `json:"logs"`
-	Server   StoreServerCfg    `json:"server"`
-	Replicas *int32            `json:"replicas"`
+	Database       StoreDatabaseCfg  `json:"database"`
+	Backends       []StoreBackendCfg `json:"backends"`
+	Logs           StoreLogsCfg      `json:"logs"`
+	Server         StoreServerCfg    `json:"server"`
+	Replicas       *int32            `json:"replicas"`
+	ServiceAccount *string           `json:"serviceAccountName,omitempty"`
 }
 
 // StoreStatus is the status for a Foo resource

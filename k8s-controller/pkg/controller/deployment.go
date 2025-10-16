@@ -25,6 +25,15 @@ func buildDeploymentLabels(store *tamsv1alpha1.Store) map[string]string {
 	}
 }
 
+// buildServiceAccountName returns the name of the ServiceAccount to use for
+// the given Store resource.
+func buildServiceAccountName(store *tamsv1alpha1.Store) string {
+	if store.Spec.ServiceAccount != nil {
+		return *store.Spec.ServiceAccount
+	}
+	return ""
+}
+
 // isDeploymentUpToDate checks if the current Deployment is up to date with the
 // desired configuration.
 func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployment, cfg *corev1.ConfigMap) bool {
@@ -41,10 +50,15 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 	if !maps.Equal(deployment.Spec.Template.ObjectMeta.Labels, expectedLabels) {
 		return false
 	}
+
+	if deployment.Spec.Template.Spec.ServiceAccountName != buildServiceAccountName(store) {
+		return false
+	}
+
+	// Check template volume matches expected configuration
 	if len(deployment.Spec.Template.Spec.Volumes) != 1 {
 		return false
 	}
-	// Check template volume matches expected configuration
 	var volume = deployment.Spec.Template.Spec.Volumes[0]
 	if volume.Name != volumeName || volume.VolumeSource.ConfigMap == nil || volume.VolumeSource.ConfigMap.LocalObjectReference.Name != cfg.GetName() {
 		return false
@@ -110,6 +124,7 @@ func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Dep
 							},
 						},
 					},
+					ServiceAccountName: buildServiceAccountName(store),
 					Volumes: []corev1.Volume{
 						{
 							Name: volumeName,

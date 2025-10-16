@@ -74,6 +74,10 @@ spec:
                   type: integer
                   minimum: 1
                   maximum: 10
+
+                serviceAccountName:
+                  type: string
+
                 server:
                   type: object
                   properties:
@@ -81,6 +85,7 @@ spec:
                       type: integer
                       minimum: 1
                       maximum: 65535
+
                 logs:
                   type: object
                   properties:

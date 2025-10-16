@@ -13,5 +13,6 @@ spec:
       default: true
       bucketName: k8s-tams-test
   replicas: 1
+  serviceAccountName: default
   logs:
     level: info
