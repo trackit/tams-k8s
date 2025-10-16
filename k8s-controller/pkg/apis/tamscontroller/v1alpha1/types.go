@@ -18,10 +18,11 @@ type Store struct {
 
 // StoreSpec is the spec for a Foo resource
 type StoreSpec struct {
-	Database StoreDatabaseCfg `json:"database"`
-	Logs     StoreLogsCfg     `json:"logs"`
-	Server   StoreServerCfg   `json:"server"`
-	Replicas *int32           `json:"replicas"`
+	Database StoreDatabaseCfg  `json:"database"`
+	Backends []StoreBackendCfg `json:"backends"`
+	Logs     StoreLogsCfg      `json:"logs"`
+	Server   StoreServerCfg    `json:"server"`
+	Replicas *int32            `json:"replicas"`
 }
 
 // StoreStatus is the status for a Foo resource
@@ -31,12 +32,12 @@ type StoreStatus struct {
 
 // StoreServerCfg is the server configuration for a Store resource
 type StoreServerCfg struct {
-	Port *int32 `json:"port"`
+	Port *int32 `json:"port,omitempty"`
 }
 
 // StoreLogsCfg is the log configuration for a Store resource
 type StoreLogsCfg struct {
-	Level string `json:"level"`
+	Level string `json:"level,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

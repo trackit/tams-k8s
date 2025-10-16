@@ -10,6 +10,7 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
+	"k8s-controller/pkg/controller"
 	clientset "k8s-controller/pkg/generated/clientset/versioned"
 	informers "k8s-controller/pkg/generated/informers/externalversions"
 )
@@ -48,7 +49,7 @@ func main() {
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(kubeClient, time.Second*30)
 	tamsInformerFactory := informers.NewSharedInformerFactory(tamsClient, time.Second*30)
 
-	controller := NewController(
+	ctrl := controller.NewController(
 		ctx,
 		kubeClient,
 		tamsClient,
@@ -60,7 +61,7 @@ func main() {
 	kubeInformerFactory.Start(ctx.Done())
 	tamsInformerFactory.Start(ctx.Done())
 
-	if err = controller.Run(ctx, 2); err != nil {
+	if err = ctrl.Run(ctx, 2); err != nil {
 		logger.Error(err, "Error running controller")
 		klog.FlushAndExit(klog.ExitFlushTimeout, 1)
 	}

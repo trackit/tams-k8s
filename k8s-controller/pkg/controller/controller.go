@@ -1,4 +1,4 @@
-package main
+package controller
 
 import (
 	"context"
@@ -267,7 +267,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	configmap, err := c.configmapLister.ConfigMaps(store.Namespace).Get(store.Name)
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Create(ctx, newCfgMap(store), metav1.CreateOptions{FieldManager: FieldManager})
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Create(ctx, newConfigMap(store), metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -298,6 +298,12 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	if store.Spec.Replicas != nil && *store.Spec.Replicas != *deployment.Spec.Replicas {
 		logger.V(4).Info("Update deployment resource", "currentReplicas", *deployment.Spec.Replicas, "desiredReplicas", *store.Spec.Replicas)
 		deployment, err = c.kubeclientset.AppsV1().Deployments(store.Namespace).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
+	}
+
+	// If the current config does not reflect the desired config, we should update the Configmap resource.
+	if isConfigMapUpToDate(store, configmap) == false {
+		logger.V(4).Info("Update configmap resource", "config.json")
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, newConfigMap(store), metav1.UpdateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Update, we'll requeue the item so we can
@@ -381,26 +387,6 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		c.enqueueStore(store)
 		return
-	}
-}
-
-func newCfgMap(store *tamsv1alpha1.Store) *corev1.ConfigMap {
-	labels := map[string]string{
-		"app":        "tams-store",
-		"controller": store.Name,
-	}
-	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      store.Name,
-			Namespace: store.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(store, tamsv1alpha1.SchemeGroupVersion.WithKind("Store")),
-			},
-			Labels: labels,
-		},
-		Data: map[string]string{
-			"config.json": "test",
-		},
 	}
 }
 

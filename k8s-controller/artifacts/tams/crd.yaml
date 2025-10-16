@@ -44,6 +44,30 @@ spec:
                         type:
                           enum: [memory]
 
+                backends:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, type]
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                        enum: [s3]
+                      bucketName:
+                        type: string
+                      region:
+                        type: string
+                      endpoint:
+                        type: string
+                    oneOf:
+                      - properties:
+                          type:
+                            enum: [s3]
+                        required:
+                          - bucketName
+
                 replicas:
                   type: integer
                   minimum: 1

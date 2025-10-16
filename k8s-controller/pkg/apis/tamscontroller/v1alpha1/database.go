@@ -57,15 +57,21 @@ func (c *StoreDatabaseCfg) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	if getType == DynamoDBType {
+	c.typeName = getType
+	switch getType {
+	case DynamoDBType:
 		c.ddbCfg = &DynamoDBDatabaseCfg{}
 		err = json.Unmarshal(b, c.ddbCfg)
 		if err != nil {
 			return err
 		}
-	} else if getType == MemoryDBType {
+	case MemoryDBType:
+		c.memCfg = &MemoryDatabaseCfg{}
+		err = json.Unmarshal(b, c.memCfg)
+		if err != nil {
+			return err
+		}
 	}
-	c.typeName = getType
 	return nil
 }
 
