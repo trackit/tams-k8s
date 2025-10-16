@@ -36,7 +36,9 @@ const controllerAgentName = "tams-controller"
 const (
 	SuccessSynced         = "Synced"
 	ErrResourceExists     = "ErrResourceExists"
+	ErrUnknownError       = "ErrUnknownError"
 	MessageResourceExists = "Resource %q already exists and is not managed by Store"
+	MessageUnknownError   = "An unknown occurred while processing the Store: %s"
 	MessageResourceSynced = "Store synced successfully"
 	FieldManager          = controllerAgentName
 )
@@ -241,20 +243,11 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
-	deploymentName := store.Name
-	if deploymentName == "" {
-		// We absorb the error here as the worker would requeue the resource
-		// otherwise. Instead, the next time the resource is updated, the
-		// resource will be queued again.
-		utilruntime.HandleErrorWithContext(ctx, nil, "Deployment name missing from object reference", "objectReference", objectRef)
-		return nil
-	}
-
-	// Get the deployment with the name specified in Store.spec
-	deployment, err := c.deploymentsLister.Deployments(store.Namespace).Get(deploymentName)
+	// Get the configmap with the name specified in Store
+	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.Namespace).Create(ctx, newDeployment(store), metav1.CreateOptions{FieldManager: FieldManager})
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.GetNamespace()).Create(ctx, newConfigMap(store), metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -263,11 +256,11 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
-	// Get the configmap with the name specified in Store
-	configmap, err := c.configmapLister.ConfigMaps(store.Namespace).Get(store.Name)
+	// Get the deployment with the name specified in Store.spec
+	deployment, err := c.deploymentsLister.Deployments(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Create(ctx, newConfigMap(store), metav1.CreateOptions{FieldManager: FieldManager})
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Create(ctx, newDeployment(store, configmap), metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -292,18 +285,21 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return fmt.Errorf("%s", msg)
 	}
 
-	// If this number of the replicas on the Store resource is specified, and the
-	// number does not equal the current desired replicas on the Deployment, we
-	// should update the Deployment resource.
-	if store.Spec.Replicas != nil && *store.Spec.Replicas != *deployment.Spec.Replicas {
-		logger.V(4).Info("Update deployment resource", "currentReplicas", *deployment.Spec.Replicas, "desiredReplicas", *store.Spec.Replicas)
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.Namespace).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
-	}
-
 	// If the current config does not reflect the desired config, we should update the Configmap resource.
-	if isConfigMapUpToDate(store, configmap) == false {
+	if upToDate, err := isConfigMapUpToDate(store, configmap); err != nil {
+		msg := fmt.Sprintf(MessageUnknownError, err.Error())
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrUnknownError, msg)
+		return err
+	} else if upToDate == false {
 		logger.V(4).Info("Update configmap resource", "config.json")
 		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, newConfigMap(store), metav1.UpdateOptions{FieldManager: FieldManager})
+	}
+
+	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
+	if !isDeploymentUpToDate(store, deployment, configmap) {
+		fmt.Println("deployment is not up to date")
+		logger.V(4).Info("Update deployment resource")
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store, configmap), metav1.UpdateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Update, we'll requeue the item so we can
@@ -387,43 +383,5 @@ func (c *Controller) handleObject(obj interface{}) {
 
 		c.enqueueStore(store)
 		return
-	}
-}
-
-// newDeployment creates a new Deployment for a Store resource. It also sets
-// the appropriate OwnerReferences on the resource so handleObject can discover
-// the Store resource that 'owns' it.
-func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
-	labels := map[string]string{
-		"app":        "nginx",
-		"controller": store.Name,
-	}
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      store.Name,
-			Namespace: store.Namespace,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(store, tamsv1alpha1.SchemeGroupVersion.WithKind("Store")),
-			},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: store.Spec.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  "nginx",
-							Image: "nginx:latest",
-						},
-					},
-				},
-			},
-		},
 	}
 }

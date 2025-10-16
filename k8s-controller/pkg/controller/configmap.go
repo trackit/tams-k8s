@@ -17,12 +17,15 @@ type ConfigMap struct {
 	Server   tamsv1alpha1.StoreServerCfg    `json:"server"`
 }
 
+// buildConfigMapLabels returns the labels that should be applied to the
+// provided store ConfigMap.
 func buildConfigMapLabels(store *tamsv1alpha1.Store) map[string]string {
 	return map[string]string{
 		"controller": store.GetName(),
 	}
 }
 
+// marshalConfigMap returns the JSON encoding of the provided store.
 func marshalConfigMap(store *tamsv1alpha1.Store) ([]byte, error) {
 	var cfg = ConfigMap{
 		Database: store.Spec.Database,
@@ -37,26 +40,31 @@ func marshalConfigMap(store *tamsv1alpha1.Store) ([]byte, error) {
 	return marshalledCfg, nil
 }
 
-func isConfigMapUpToDate(store *tamsv1alpha1.Store, currentConfig *corev1.ConfigMap) bool {
+// isConfigMapUpToDate checks if the current ConfigMap is up to date with the
+// desired configuration.
+func isConfigMapUpToDate(store *tamsv1alpha1.Store, currentConfig *corev1.ConfigMap) (bool, error) {
 	// Check current labels matches expected configuration
 	expectedLabels := buildConfigMapLabels(store)
 	if !maps.Equal(currentConfig.GetLabels(), expectedLabels) {
-		return false
+		return false, nil
 	}
 	// Check config.json matches the expected configuration
 	marshalledCfg, err := marshalConfigMap(store)
 	if err != nil {
-		return false
+		return false, err
 	}
 	if currentConfig.Data["config.json"] != string(marshalledCfg) {
-		return false
+		return false, nil
 	}
 	if len(currentConfig.Data) > 1 {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
+// newConfigMap creates a new ConfigMap for the given store. It also sets
+// the appropriate OwnerReferences on the resource so handleObject can discover
+// the Store resource that 'owns' it.
 func newConfigMap(store *tamsv1alpha1.Store) *corev1.ConfigMap {
 	marshalledCfg, _ := marshalConfigMap(store)
 	return &corev1.ConfigMap{
