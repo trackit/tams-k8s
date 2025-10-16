@@ -241,7 +241,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
-	deploymentName := store.Spec.DeploymentName
+	deploymentName := store.Name
 	if deploymentName == "" {
 		// We absorb the error here as the worker would requeue the resource
 		// otherwise. Instead, the next time the resource is updated, the
@@ -414,7 +414,7 @@ func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 	}
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      store.Spec.DeploymentName,
+			Name:      store.Name,
 			Namespace: store.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(store, tamsv1alpha1.SchemeGroupVersion.WithKind("Store")),

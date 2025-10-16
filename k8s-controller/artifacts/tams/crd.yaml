@@ -12,16 +12,49 @@ spec:
       schema:
         openAPIV3Schema:
           type: object
+          required: [spec]
           properties:
             spec:
               type: object
+              required: [database]
               properties:
-                deploymentName:
-                  type: string
+                database:
+                  type: object
+                  required: [type]
+                  properties:
+                    type:
+                      type: string
+                      enum: [dynamodb, memory]
+                    flowTableName:
+                      type: string
+                    serviceTableName:
+                      type: string
+                    region:
+                      type: string
+                    endpoint:
+                      type: string
+                  oneOf:
+                    - properties:
+                        type:
+                          enum: [dynamodb]
+                      required:
+                        - flowTableName
+                        - serviceTableName
+                    - properties:
+                        type:
+                          enum: [memory]
+
                 replicas:
                   type: integer
                   minimum: 1
                   maximum: 10
+                server:
+                  type: object
+                  properties:
+                    port:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
                 logs:
                   type: object
                   properties:
@@ -33,8 +66,6 @@ spec:
               properties:
                 availableReplicas:
                   type: integer
-          required:
-            - spec
       subresources:
         status: {}
   names:

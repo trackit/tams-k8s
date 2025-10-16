@@ -3,7 +3,10 @@ kind: Store
 metadata:
   name: example-store
 spec:
-  deploymentName: example-store
+  database:
+    type: dynamodb
+    flowTableName: 'k8s-tams-test'
+    serviceTableName: 'k8s-tams-test-service'
   replicas: 1
   logs:
     level: info
