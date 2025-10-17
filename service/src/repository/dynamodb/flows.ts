@@ -1,7 +1,7 @@
 import { AttributeValue, DynamoDBClient, GetItemCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import Joi from 'joi';
-import { DynamoDBConfig } from "../../config";
+import { DynamoDBConfig } from "../../configParser";
 import { InvalidPageTokenError } from '../errors';
 import type {
     ContainerMapping,
@@ -159,7 +159,7 @@ export class DDBFlowsImpl implements FlowRepository {
             exprAttrNames[keyName] = key;
         });
         const resp = await this.client.send(new ScanCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             FilterExpression: filterExpr.length === 0 ? undefined : filterExpr.join(' AND '),
             ExpressionAttributeNames: Object.keys(exprAttrNames).length ? exprAttrNames : undefined,
             ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined,
@@ -175,7 +175,7 @@ export class DDBFlowsImpl implements FlowRepository {
 
     async getFlowById(flowId: string): Promise<Flow | null> {
         const result = await this.client.send(new GetItemCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             Key: {
                 flowId: {
                     S: flowId,
@@ -188,7 +188,7 @@ export class DDBFlowsImpl implements FlowRepository {
 
     async putFlow(flow: Flow): Promise<Flow> {
         await this.client.send(new PutItemCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             ReturnValues: 'NONE',
             Item: this.flowToRecord(flow),
         }));

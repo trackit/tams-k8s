@@ -1,6 +1,6 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { DynamoDBConfig } from "../../config";
+import { DynamoDBConfig } from "../../configParser";
 import { Service, ServiceRepository, ServiceUpdate } from "../service";
 
 export class DDBServiceImpl implements ServiceRepository {
