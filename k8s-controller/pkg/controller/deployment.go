@@ -1,12 +1,14 @@
 package controller
 
 import (
-	tamsv1alpha1 "k8s-controller/pkg/apis/tamscontroller/v1alpha1"
 	"maps"
 
+	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	tamsv1alpha1 "k8s-controller/pkg/apis/tamscontroller/v1alpha1"
 )
 
 const (
@@ -34,26 +36,6 @@ func buildServiceAccountName(store *tamsv1alpha1.Store) string {
 	return ""
 }
 
-func buildDeploymentEnvVar(store *tamsv1alpha1.Store) []corev1.EnvVar {
-	var env = []corev1.EnvVar{
-		{
-			Name:  "TAMS_CONFIG_PATH",
-			Value: configPath,
-		},
-	}
-	if store.Spec.Aws != nil {
-		env = append(env, corev1.EnvVar{
-			Name:  "AWS_ACCESS_KEY_ID",
-			Value: store.Spec.Aws.AccessKeyId,
-		})
-		env = append(env, corev1.EnvVar{
-			Name:  "AWS_SECRET_ACCESS_KEY",
-			Value: store.Spec.Aws.SecretAccessKey,
-		})
-	}
-	return env
-}
-
 func buildDeploymentPort(store *tamsv1alpha1.Store) int32 {
 	if store.Spec.Server.Port != nil {
 		return *store.Spec.Server.Port
@@ -61,34 +43,10 @@ func buildDeploymentPort(store *tamsv1alpha1.Store) int32 {
 	return 3000
 }
 
-func isDeploymentEnvUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployment) bool {
-	expectedEnv := buildDeploymentEnvVar(store)
-	currentEnv := deployment.Spec.Template.Spec.Containers[0].Env
-	if len(expectedEnv) != len(currentEnv) {
-		return false
-	}
-	hasMatch := false
-	for _, env := range currentEnv {
-		hasMatch = false
-		for _, expected := range expectedEnv {
-			if env.Name == expected.Name {
-				if env.Value != expected.Value {
-					return false
-				}
-				hasMatch = true
-				break
-			}
-		}
-		if !hasMatch {
-			return false
-		}
-	}
-	return true
-}
-
 // isDeploymentUpToDate checks if the current Deployment is up to date with the
 // desired configuration.
-func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployment, cfg *corev1.ConfigMap) bool {
+func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployment) bool {
+	expectedDeployment := newDeployment(store)
 	expectedLabels := buildDeploymentLabels(store)
 	// Check replicas matches expected configuration
 	if store.Spec.Replicas != nil && (deployment.Spec.Replicas == nil || *store.Spec.Replicas != *deployment.Spec.Replicas) {
@@ -112,26 +70,36 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 		return false
 	}
 	var volume = deployment.Spec.Template.Spec.Volumes[0]
-	if volume.Name != volumeName || volume.VolumeSource.ConfigMap == nil || volume.VolumeSource.ConfigMap.LocalObjectReference.Name != cfg.GetName() {
+	if volume.Name != volumeName || volume.VolumeSource.ConfigMap == nil || volume.VolumeSource.ConfigMap.LocalObjectReference.Name != store.GetName() {
 		return false
 	}
+
 	// Check template contains exactly one container
 	if len(deployment.Spec.Template.Spec.Containers) != 1 {
 		return false
 	}
+
 	var container = deployment.Spec.Template.Spec.Containers[0]
+	var expectedContainer = expectedDeployment.Spec.Template.Spec.Containers[0]
 	// Check image matches expected configuration
 	if container.Name != "tams" || container.Image != image {
 		return false
 	}
+
 	// Check environment variables matches expected configuration
-	if !isDeploymentEnvUpToDate(store, deployment) {
+	if !cmp.Equal(container.Env, expectedContainer.Env) {
 		return false
 	}
-	if len(container.VolumeMounts) != 1 || container.VolumeMounts[0].Name != volumeName || container.VolumeMounts[0].MountPath != configPath || container.VolumeMounts[0].SubPath != "config.json" {
+	// Check environment variables from secret matches expected configuration
+	if !cmp.Equal(container.EnvFrom, expectedContainer.EnvFrom) {
 		return false
 	}
-	if len(container.Ports) != 1 || container.Ports[0].Name != "http" || container.Ports[0].ContainerPort != buildDeploymentPort(store) {
+	// Check volume mounts matches expected configuration
+	if !cmp.Equal(container.VolumeMounts, expectedContainer.VolumeMounts) {
+		return false
+	}
+	// Check ports matches expected configuration
+	if !cmp.Equal(container.Ports, expectedContainer.Ports) {
 		return false
 	}
 	return true
@@ -140,9 +108,8 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 // newDeployment creates a new Deployment for a Store resource. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Store resource that 'owns' it.
-func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Deployment {
+func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 	labels := buildDeploymentLabels(store)
-	env := buildDeploymentEnvVar(store)
 	return &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      store.Name,
@@ -165,7 +132,21 @@ func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Dep
 						{
 							Name:  "tams",
 							Image: image,
-							Env:   env,
+							Env: []corev1.EnvVar{
+								{
+									Name:  "TAMS_CONFIG_PATH",
+									Value: configPath,
+								},
+							},
+							EnvFrom: []corev1.EnvFromSource{
+								{
+									SecretRef: &corev1.SecretEnvSource{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: store.GetName(),
+										},
+									},
+								},
+							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      volumeName,
@@ -177,6 +158,7 @@ func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Dep
 								{
 									Name:          "http",
 									ContainerPort: buildDeploymentPort(store),
+									Protocol:      corev1.ProtocolTCP,
 								},
 							},
 						},
@@ -188,7 +170,7 @@ func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Dep
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: cfg.GetName(),
+										Name: store.GetName(),
 									},
 								},
 							},

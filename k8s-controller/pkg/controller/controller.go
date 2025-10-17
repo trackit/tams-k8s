@@ -53,6 +53,8 @@ type Controller struct {
 	deploymentsSynced cache.InformerSynced
 	configmapLister   corelisters.ConfigMapLister
 	configmapSynced   cache.InformerSynced
+	secretLister      corelisters.SecretLister
+	secretSynced      cache.InformerSynced
 	storesLister      listers.StoreLister
 	storesSynced      cache.InformerSynced
 
@@ -73,6 +75,7 @@ func NewController(
 	storeclientset clientset.Interface,
 	deploymentInformer appsinformers.DeploymentInformer,
 	configmapInformer coreinformers.ConfigMapInformer,
+	secretInformer coreinformers.SecretInformer,
 	storeInformer informers.StoreInformer,
 ) *Controller {
 	logger := klog.FromContext(ctx)
@@ -99,6 +102,8 @@ func NewController(
 		deploymentsSynced: deploymentInformer.Informer().HasSynced,
 		configmapLister:   configmapInformer.Lister(),
 		configmapSynced:   configmapInformer.Informer().HasSynced,
+		secretLister:      secretInformer.Lister(),
+		secretSynced:      secretInformer.Informer().HasSynced,
 		storesLister:      storeInformer.Lister(),
 		storesSynced:      storeInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewTypedRateLimitingQueue(rateLimiter),
@@ -113,7 +118,7 @@ func NewController(
 			controller.enqueueStore(new)
 		},
 	})
-	// Set up an event handler for when Deployment resources change. This
+	// Set up an event handler for when Deployment, Configmap or Secret resources change. This
 	// handler will lookup the owner of the given Deployment, and if it is
 	// owned by a TAMS resource then the handler will enqueue that TAMS resource for
 	// processing. This way, we don't need to implement custom logic for
@@ -133,12 +138,23 @@ func NewController(
 		},
 		DeleteFunc: controller.handleObject,
 	})
-
 	configmapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.handleObject,
 		UpdateFunc: func(old, new interface{}) {
 			newDepl := new.(*corev1.ConfigMap)
 			oldDepl := old.(*corev1.ConfigMap)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+	secretInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*corev1.Secret)
+			oldDepl := old.(*corev1.Secret)
 			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
 				return
 			}
@@ -165,7 +181,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	// Wait for the caches to be synced before starting workers
 	logger.Info("Waiting for informer caches to sync")
 
-	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced, c.secretSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -243,6 +259,11 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
+	if _, err := c.syncSecret(ctx, logger, store); err != nil {
+		logger.V(2).Error(err, "Failed to sync configmap")
+		return err
+	}
+
 	// Get the configmap with the name specified in Store
 	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
@@ -265,7 +286,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	deployment, err := c.deploymentsLister.Deployments(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Create(ctx, newDeployment(store, configmap), metav1.CreateOptions{FieldManager: FieldManager})
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Create(ctx, newDeployment(store), metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -306,9 +327,10 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	}
 
 	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
-	if !isDeploymentUpToDate(store, deployment, configmap) {
+	if !isDeploymentUpToDate(store, deployment) {
+		fmt.Println("deployment not up to date")
 		logger.V(4).Info("Update deployment resource")
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store, configmap), metav1.UpdateOptions{FieldManager: FieldManager})
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Update, we'll requeue the item so we can

@@ -55,6 +55,7 @@ func main() {
 		tamsClient,
 		kubeInformerFactory.Apps().V1().Deployments(),
 		kubeInformerFactory.Core().V1().ConfigMaps(),
+		kubeInformerFactory.Core().V1().Secrets(),
 		tamsInformerFactory.Tamscontroller().V1alpha1().Stores(),
 	)
 
