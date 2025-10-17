@@ -260,7 +260,7 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	}
 
 	if _, err := c.syncSecret(ctx, logger, store); err != nil {
-		logger.V(2).Error(err, "Failed to sync configmap")
+		logger.V(2).Error(err, "Failed to sync secret")
 		return err
 	}
 
@@ -328,7 +328,6 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 
 	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
 	if !isDeploymentUpToDate(store, deployment) {
-		fmt.Println("deployment not up to date")
 		logger.V(4).Info("Update deployment resource")
 		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
 	}

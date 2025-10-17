@@ -12,12 +12,12 @@ source "${CODEGEN_PKG}/kube_codegen.sh"
 THIS_PKG="k8s-controller"
 
 kube::codegen::gen_helpers \
-    --boilerplate "${SCRIPT_ROOT}/scripts/boilerplate.go.txt" \
+    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
     "${SCRIPT_ROOT}/pkg/apis"
 
 kube::codegen::gen_client \
     --with-watch \
     --output-dir "${SCRIPT_ROOT}/pkg/generated" \
     --output-pkg "${THIS_PKG}/pkg/generated" \
-    --boilerplate "${SCRIPT_ROOT}/scripts/boilerplate.go.txt" \
+    --boilerplate "${SCRIPT_ROOT}/hack/boilerplate.go.txt" \
     "${SCRIPT_ROOT}/pkg/apis"
