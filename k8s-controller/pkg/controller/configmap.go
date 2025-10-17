@@ -65,8 +65,11 @@ func isConfigMapUpToDate(store *tamsv1alpha1.Store, currentConfig *corev1.Config
 // newConfigMap creates a new ConfigMap for the given store. It also sets
 // the appropriate OwnerReferences on the resource so handleObject can discover
 // the Store resource that 'owns' it.
-func newConfigMap(store *tamsv1alpha1.Store) *corev1.ConfigMap {
-	marshalledCfg, _ := marshalConfigMap(store)
+func newConfigMap(store *tamsv1alpha1.Store) (*corev1.ConfigMap, error) {
+	marshalledCfg, err := marshalConfigMap(store)
+	if err != nil {
+		return nil, err
+	}
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      store.Name,
@@ -79,5 +82,5 @@ func newConfigMap(store *tamsv1alpha1.Store) *corev1.ConfigMap {
 		Data: map[string]string{
 			"config.json": string(marshalledCfg),
 		},
-	}
+	}, nil
 }

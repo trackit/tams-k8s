@@ -138,7 +138,7 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 }
 
 // newDeployment creates a new Deployment for a Store resource. It also sets
-// the appropriate OwnerRetourReferences on the resource so handleObject can discover
+// the appropriate OwnerReferences on the resource so handleObject can discover
 // the Store resource that 'owns' it.
 func newDeployment(store *tamsv1alpha1.Store, cfg *corev1.ConfigMap) *appsv1.Deployment {
 	labels := buildDeploymentLabels(store)

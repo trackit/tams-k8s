@@ -38,7 +38,7 @@ const (
 	ErrResourceExists     = "ErrResourceExists"
 	ErrUnknownError       = "ErrUnknownError"
 	MessageResourceExists = "Resource %q already exists and is not managed by Store"
-	MessageUnknownError   = "An unknown occurred while processing the Store: %s"
+	MessageUnknownError   = "An unknown error occurred while processing the Store: %s"
 	MessageResourceSynced = "Store synced successfully"
 	FieldManager          = controllerAgentName
 )
@@ -165,7 +165,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	// Wait for the caches to be synced before starting workers
 	logger.Info("Waiting for informer caches to sync")
 
-	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -247,7 +247,12 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
 	if errors.IsNotFound(err) {
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.GetNamespace()).Create(ctx, newConfigMap(store), metav1.CreateOptions{FieldManager: FieldManager})
+		cfg, err := newConfigMap(store)
+		if err != nil {
+			logger.V(2).Error(err, "Failed to create configmap")
+			return err
+		}
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.GetNamespace()).Create(ctx, cfg, metav1.CreateOptions{FieldManager: FieldManager})
 	}
 
 	// If an error occurs during Get/Create, we'll requeue the item so we can
@@ -292,12 +297,16 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	} else if upToDate == false {
 		logger.V(4).Info("Update configmap resource", "config.json")
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, newConfigMap(store), metav1.UpdateOptions{FieldManager: FieldManager})
+		cfg, err := newConfigMap(store)
+		if err != nil {
+			logger.V(2).Error(err, "Failed to create configmap")
+			return err
+		}
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, cfg, metav1.UpdateOptions{FieldManager: FieldManager})
 	}
 
 	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
 	if !isDeploymentUpToDate(store, deployment, configmap) {
-		fmt.Println("deployment is not up to date")
 		logger.V(4).Info("Update deployment resource")
 		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store, configmap), metav1.UpdateOptions{FieldManager: FieldManager})
 	}

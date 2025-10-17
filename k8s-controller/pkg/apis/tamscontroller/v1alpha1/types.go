@@ -16,7 +16,7 @@ type Store struct {
 	Status StoreStatus `json:"status"`
 }
 
-// StoreSpec is the spec for a Foo resource
+// StoreSpec is the spec for a Store resource
 type StoreSpec struct {
 	Database       StoreDatabaseCfg  `json:"database"`
 	Backends       []StoreBackendCfg `json:"backends"`
@@ -27,7 +27,7 @@ type StoreSpec struct {
 	ServiceAccount *string           `json:"serviceAccountName,omitempty"`
 }
 
-// StoreStatus is the status for a Foo resource
+// StoreStatus is the status for a Store resource
 type StoreStatus struct {
 	AvailableReplicas int32 `json:"availableReplicas"`
 }
@@ -50,7 +50,7 @@ type StoreAwsCfg struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// StoreList is a list of Foo resources
+// StoreList is a list of Store resources
 type StoreList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
