@@ -29,6 +29,16 @@ spec:
                         - bucket
                   required:
                     - s3
+                logs:
+                  type: object
+                  properties:
+                    level:
+                      type: string
+                server:
+                  type: object
+                  properties:
+                    port:
+                      type: number
               required:
                 - backend
           required:

@@ -1,0 +1,417 @@
+package controller
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	"golang.org/x/time/rate"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	appsinformers "k8s.io/client-go/informers/apps/v1"
+	coreinformers "k8s.io/client-go/informers/core/v1"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	appslisters "k8s.io/client-go/listers/apps/v1"
+	corelisters "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
+	"k8s.io/klog/v2"
+
+	tamsv1alpha1 "k8s-controller/pkg/apis/tamscontroller/v1alpha1"
+	clientset "k8s-controller/pkg/generated/clientset/versioned"
+	storescheme "k8s-controller/pkg/generated/clientset/versioned/scheme"
+	informers "k8s-controller/pkg/generated/informers/externalversions/tamscontroller/v1alpha1"
+	listers "k8s-controller/pkg/generated/listers/tamscontroller/v1alpha1"
+)
+
+const controllerAgentName = "tams-controller"
+
+const (
+	SuccessSynced         = "Synced"
+	ErrResourceExists     = "ErrResourceExists"
+	ErrUnknownError       = "ErrUnknownError"
+	MessageResourceExists = "Resource %q already exists and is not managed by Store"
+	MessageUnknownError   = "An unknown error occurred while processing the Store: %s"
+	MessageResourceSynced = "Store synced successfully"
+	FieldManager          = controllerAgentName
+)
+
+type Controller struct {
+	// kubeclientset is a standard kubernetes clientset
+	kubeclientset kubernetes.Interface
+	// storeclientset is a clientset for TAMS API group
+	storeclientset clientset.Interface
+
+	deploymentsLister appslisters.DeploymentLister
+	deploymentsSynced cache.InformerSynced
+	configmapLister   corelisters.ConfigMapLister
+	configmapSynced   cache.InformerSynced
+	secretLister      corelisters.SecretLister
+	secretSynced      cache.InformerSynced
+	storesLister      listers.StoreLister
+	storesSynced      cache.InformerSynced
+
+	// workqueue is a rate-limited work queue. This is used to queue work to be
+	// processed instead of performing it as soon as a change happens. This
+	// means we can ensure we only process a fixed amount of resources at a
+	// time, and makes it easy to ensure we are never processing the same item
+	// simultaneously in two different workers.
+	workqueue workqueue.TypedRateLimitingInterface[cache.ObjectName]
+	// recorder is an event record for recording Event resources to the
+	// Kubernetes API.
+	recorder record.EventRecorder
+}
+
+func NewController(
+	ctx context.Context,
+	kubeclientset kubernetes.Interface,
+	storeclientset clientset.Interface,
+	deploymentInformer appsinformers.DeploymentInformer,
+	configmapInformer coreinformers.ConfigMapInformer,
+	secretInformer coreinformers.SecretInformer,
+	storeInformer informers.StoreInformer,
+) *Controller {
+	logger := klog.FromContext(ctx)
+
+	// Create event broadcaster
+	// Add tams-controller types to the default Kubernetes Scheme so Events can be
+	// logged for tams-controller types.
+	utilruntime.Must(storescheme.AddToScheme(scheme.Scheme))
+	logger.V(4).Info("Creating event broadcaster")
+
+	eventBroadcaster := record.NewBroadcaster(record.WithContext(ctx))
+	eventBroadcaster.StartStructuredLogging(0)
+	eventBroadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: kubeclientset.CoreV1().Events("")})
+	recorder := eventBroadcaster.NewRecorder(scheme.Scheme, corev1.EventSource{Component: controllerAgentName})
+	rateLimiter := workqueue.NewTypedMaxOfRateLimiter(
+		workqueue.NewTypedItemExponentialFailureRateLimiter[cache.ObjectName](5*time.Millisecond, 1000*time.Second),
+		&workqueue.TypedBucketRateLimiter[cache.ObjectName]{Limiter: rate.NewLimiter(rate.Limit(50), 300)},
+	)
+
+	controller := &Controller{
+		kubeclientset:     kubeclientset,
+		storeclientset:    storeclientset,
+		deploymentsLister: deploymentInformer.Lister(),
+		deploymentsSynced: deploymentInformer.Informer().HasSynced,
+		configmapLister:   configmapInformer.Lister(),
+		configmapSynced:   configmapInformer.Informer().HasSynced,
+		secretLister:      secretInformer.Lister(),
+		secretSynced:      secretInformer.Informer().HasSynced,
+		storesLister:      storeInformer.Lister(),
+		storesSynced:      storeInformer.Informer().HasSynced,
+		workqueue:         workqueue.NewTypedRateLimitingQueue(rateLimiter),
+		recorder:          recorder,
+	}
+
+	logger.Info("Setting up event handlers")
+	// Set up an event handler for when TAMS resources change
+	storeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.enqueueStore,
+		UpdateFunc: func(old, new interface{}) {
+			controller.enqueueStore(new)
+		},
+	})
+	// Set up an event handler for when Deployment, Configmap or Secret resources change. This
+	// handler will lookup the owner of the given Deployment, and if it is
+	// owned by a TAMS resource then the handler will enqueue that TAMS resource for
+	// processing. This way, we don't need to implement custom logic for
+	// handling Deployment resources. More info on this pattern:
+	// https://github.com/kubernetes/community/blob/8cafef897a22026d42f5e5bb3f104febe7e29830/contributors/devel/controllers.md
+	deploymentInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*appsv1.Deployment)
+			oldDepl := old.(*appsv1.Deployment)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				// Periodic resync will send update events for all known Deployments.
+				// Two different versions of the same Deployment will always have different ResourceVersion.
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+	configmapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*corev1.ConfigMap)
+			oldDepl := old.(*corev1.ConfigMap)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+	secretInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: controller.handleObject,
+		UpdateFunc: func(old, new interface{}) {
+			newDepl := new.(*corev1.Secret)
+			oldDepl := old.(*corev1.Secret)
+			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
+				return
+			}
+			controller.handleObject(new)
+		},
+		DeleteFunc: controller.handleObject,
+	})
+
+	return controller
+}
+
+// Run will set up the event handlers for types we are interested in, as well
+// as syncing informer caches and starting workers. It will block until stopCh
+// is closed, at which point it will shut down the workqueue and wait for
+// workers to finish processing their current work items.
+func (c *Controller) Run(ctx context.Context, workers int) error {
+	defer utilruntime.HandleCrash()
+	defer c.workqueue.ShutDown()
+	logger := klog.FromContext(ctx)
+
+	// Start the informer factories to begin populating the informer caches
+	logger.Info("Starting Store controller")
+
+	// Wait for the caches to be synced before starting workers
+	logger.Info("Waiting for informer caches to sync")
+
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced, c.secretSynced); !ok {
+		return fmt.Errorf("failed to wait for caches to sync")
+	}
+
+	logger.Info("Starting workers", "count", workers)
+	// Launch n-workers to process Store resources
+	for i := 0; i < workers; i++ {
+		go wait.UntilWithContext(ctx, c.runWorker, time.Second)
+	}
+
+	logger.Info("Started workers")
+	<-ctx.Done()
+	logger.Info("Shutting down workers")
+
+	return nil
+}
+
+// runWorker is a long-running function that will continually call the
+// processNextWorkItem function in order to read and process a message on the
+// workqueue.
+func (c *Controller) runWorker(ctx context.Context) {
+	for c.processNextWorkItem(ctx) {
+
+	}
+}
+
+// processNextWorkItem will read a single work item off the workqueue and
+// attempt to process it, by calling the syncHandler.
+func (c *Controller) processNextWorkItem(ctx context.Context) bool {
+	objRef, shutdown := c.workqueue.Get()
+	logger := klog.FromContext(ctx)
+
+	if shutdown {
+		return false
+	}
+
+	// We call Done at the end of this func so the workqueue know we have
+	// finished processing this item. We also must remember to call Forget
+	// if we do not want this work item being re-queue. For example, we do
+	// not call Forget if a transient error occurs, instead the item is
+	// put back on the workqueue and attempted again after a back-off
+	// period.
+	defer c.workqueue.Done(objRef)
+
+	err := c.syncHandler(ctx, objRef)
+	if err == nil {
+		// If no error occurs then we Forget this item so it does not
+		// get queued again until another change happens.
+		c.workqueue.Forget(objRef)
+		logger.Info("Successfully synced", "objectName", objRef.Name)
+		return true
+	}
+	// Report the failure
+	utilruntime.HandleErrorWithContext(ctx, err, "Error syncing; requeuing for later retry", "objectReference", objRef)
+	// Requeue the failed item
+	c.workqueue.AddRateLimited(objRef)
+	return true
+}
+
+// syncHandler compares the actual state with the desired and attempts to
+// converge the two. It then updates the Status block of the Store resource
+// with the current status of the resource.
+func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName) error {
+	logger := klog.LoggerWithValues(klog.FromContext(ctx), "objectRef", objectRef)
+
+	// Get the Store resource with this namespace/name
+	store, err := c.storesLister.Stores(objectRef.Namespace).Get(objectRef.Name)
+	if err != nil {
+		// The Store resource may no longer exist, in which case we stop
+		// processing.
+		if errors.IsNotFound(err) {
+			utilruntime.HandleErrorWithContext(ctx, err, "Store referenced by item in work queue no longer exists", "objectReference", objectRef)
+			return nil
+		}
+
+		return err
+	}
+
+	if _, err := c.syncSecret(ctx, logger, store); err != nil {
+		logger.V(2).Error(err, "Failed to sync secret")
+		return err
+	}
+
+	// Get the configmap with the name specified in Store
+	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		cfg, err := newConfigMap(store)
+		if err != nil {
+			logger.V(2).Error(err, "Failed to create configmap")
+			return err
+		}
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.GetNamespace()).Create(ctx, cfg, metav1.CreateOptions{FieldManager: FieldManager})
+	}
+
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later.
+	if err != nil {
+		return err
+	}
+
+	// Get the deployment with the name specified in Store.spec
+	deployment, err := c.deploymentsLister.Deployments(store.GetNamespace()).Get(store.GetName())
+	// If the resource doesn't exist, we'll create it
+	if errors.IsNotFound(err) {
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Create(ctx, newDeployment(store), metav1.CreateOptions{FieldManager: FieldManager})
+	}
+
+	// If an error occurs during Get/Create, we'll requeue the item so we can
+	// attempt processing again later.
+	if err != nil {
+		return err
+	}
+
+	// If the Deployment is not controlled by this Store resource, we log a
+	// warning to the event recorder and return an error message.
+	if !metav1.IsControlledBy(deployment, store) {
+		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	// If the Configmap is not controlled by this Store resource, we log a
+	// warning to the event recorder and return an error message.
+	if !metav1.IsControlledBy(configmap, store) {
+		msg := fmt.Sprintf(MessageResourceExists, configmap.Name)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
+		return fmt.Errorf("%s", msg)
+	}
+
+	// If the current config does not reflect the desired config, we should update the Configmap resource.
+	if upToDate, err := isConfigMapUpToDate(store, configmap); err != nil {
+		msg := fmt.Sprintf(MessageUnknownError, err.Error())
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrUnknownError, msg)
+		return err
+	} else if upToDate == false {
+		logger.V(4).Info("Update configmap resource", "config.json")
+		cfg, err := newConfigMap(store)
+		if err != nil {
+			logger.V(2).Error(err, "Failed to create configmap")
+			return err
+		}
+		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, cfg, metav1.UpdateOptions{FieldManager: FieldManager})
+	}
+
+	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
+	if !isDeploymentUpToDate(store, deployment) {
+		logger.V(4).Info("Update deployment resource")
+		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
+	}
+
+	// If an error occurs during Update, we'll requeue the item so we can
+	// attempt processing again later. This could have been caused by a
+	// temporary network failure, or any other transient reason.
+	if err != nil {
+		return err
+	}
+
+	// Finally, we update the status block of the Store resource to reflect the
+	// current state of the world
+	err = c.updateStoreStatus(ctx, store, deployment)
+	if err != nil {
+		return err
+	}
+
+	c.recorder.Event(store, corev1.EventTypeNormal, SuccessSynced, MessageResourceSynced)
+	return nil
+}
+
+func (c *Controller) updateStoreStatus(ctx context.Context, store *tamsv1alpha1.Store, deployment *appsv1.Deployment) error {
+	// Never modify objects from the store. It's a read-only, local cache.
+	// We need to use DeepCopy() to make a deep copy of the original object and modify this copy
+	// Or create a copy manually for better performance
+	storeCopy := store.DeepCopy()
+	storeCopy.Status.AvailableReplicas = deployment.Status.AvailableReplicas
+	// If the CustomResourceSubresources feature gate is not enabled,
+	// we must use Update instead of UpdateStatus to update the Status block of the Store resource.
+	// UpdateStatus will not allow changes to the Spec of the resource,
+	// which is ideal for ensuring nothing other than resource status has been updated.
+	_, err := c.storeclientset.TamscontrollerV1alpha1().Stores(store.Namespace).UpdateStatus(ctx, storeCopy, metav1.UpdateOptions{FieldManager: FieldManager})
+	return err
+}
+
+// enqueueStore takes a Store resource and converts it into a namespace/name
+// string which is then put onto the work queue. This method should *not* be
+// passed resources of any type other than Store.
+func (c *Controller) enqueueStore(obj interface{}) {
+	if objectRef, err := cache.ObjectToName(obj); err != nil {
+		utilruntime.HandleError(err)
+		return
+	} else {
+		c.workqueue.Add(objectRef)
+	}
+}
+
+func (c *Controller) handleObject(obj interface{}) {
+	var object metav1.Object
+	var ok bool
+	logger := klog.FromContext(context.Background())
+	if object, ok = obj.(metav1.Object); !ok {
+		tombstone, ok := obj.(cache.DeletedFinalStateUnknown)
+		if !ok {
+			// If the object value is not too big and does not contain sensitive information, then
+			// it may be useful to include it.
+			utilruntime.HandleErrorWithContext(context.Background(), nil, "Error decoding object, invalid type", "type", fmt.Sprintf("%T", obj))
+			return
+		}
+		object, ok = tombstone.Obj.(metav1.Object)
+		if !ok {
+			// If the object value is not too big and does not contain sensitive information, then
+			// it may be useful to include it.
+			utilruntime.HandleErrorWithContext(context.Background(), nil, "Error decoding object tombstone, invalid type", "type", fmt.Sprintf("%T", tombstone.Obj))
+			return
+		}
+		logger.V(4).Info("Recovered deleted object", "resourceName", object.GetName())
+	}
+	logger.V(4).Info("Processing object", "object", klog.KObj(object))
+	if ownerRef := metav1.GetControllerOf(object); ownerRef != nil {
+		// If this object is not owned by a TAMS, we should not do anything more
+		// with it.
+		if ownerRef.Kind != "Store" {
+			return
+		}
+
+		store, err := c.storesLister.Stores(object.GetNamespace()).Get(ownerRef.Name)
+		if err != nil {
+			logger.V(4).Info("Ignore orphaned object", "object", klog.KObj(object), "store", ownerRef.Name)
+			return
+		}
+
+		c.enqueueStore(store)
+		return
+	}
+}
