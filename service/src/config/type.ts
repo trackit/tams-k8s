@@ -3,6 +3,7 @@ export interface DynamoDBConfig {
     type: 'dynamodb'
     flowTtableName: string
     serviceTableName: string;
+    sourceTableName: string;
     region?: string
     endpoint?: string
 }

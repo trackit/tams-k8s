@@ -6,6 +6,7 @@ export const readConfig = (): Config => {
             type: 'dynamodb',
             flowTtableName: 'k8s-tams-test',
             serviceTableName: 'k8s-tams-test-service',
+            sourceTableName: 'k8s-tams-test-source',
         },
         // database: {
         //     type: 'memory'
