@@ -23,7 +23,7 @@ jobs:
       - name: Log in to registry
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build the service Docker image
-        run: docker build . --file ./service/Dockerfile --tag $SERVICE_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+        run: docker build ./service --file ./service/Dockerfile --tag $SERVICE_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
       - name: Push the service Docker image
         run: docker push ghcr.io/trackit/tams-service:latest
       - name: Push the service Docker image
