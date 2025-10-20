@@ -10,6 +10,7 @@ on:
 
 env:
   SERVICE_IMAGE_NAME: tams-service
+  CONTROLLER_IMAGE_NAME: tams-k8s-controller
 
 jobs:
   build_service:
@@ -30,8 +31,31 @@ jobs:
           SERVICE_IMAGE_ID=$(echo $SERVICE_IMAGE_ID | tr '[A-Z]' '[a-z]')
           SERVICE_VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
           [[ "${{ github.ref }}" == "refs/tags/"* ]] && SERVICE_VERSION=$(echo $SERVICE_VERSION | sed -e 's/^v//')
-          [ "$SERVICE_VERSION" == "main" ] && SERVICE_VERSION=latest
+          [ "$SERVICE_VERSION" == "master" ] && SERVICE_VERSION=latest
           echo SERVICE_IMAGE_ID=$SERVICE_IMAGE_ID
           echo SERVICE_VERSION=$SERVICE_VERSION
           docker tag $SERVICE_IMAGE_NAME $SERVICE_IMAGE_ID:$SERVICE_VERSION
           docker push $SERVICE_IMAGE_ID:$SERVICE_VERSION
+  build_controller:
+    runs-on: ubuntu-latest
+    name: Build and push controller Docker image
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build the controller Docker image
+        run: docker build ./k8s-controller --file ./k8s-controller/Dockerfile --tag $CONTROLLER_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+      - name: Push the service Docker image
+        run: |
+          CONTROLLER_IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$CONTROLLER_IMAGE_NAME
+          CONTROLLER_IMAGE_ID=$(echo $CONTROLLER_IMAGE_ID | tr '[A-Z]' '[a-z]')
+          CONTROLLER_VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && CONTROLLER_VERSION=$(echo $CONTROLLER_VERSION | sed -e 's/^v//')
+          [ "$CONTROLLER_VERSION" == "master" ] && CONTROLLER_VERSION=latest
+          echo CONTROLLER_IMAGE_ID=$CONTROLLER_IMAGE_ID
+          echo CONTROLLER_VERSION=$CONTROLLER_VERSION
+          docker tag $CONTROLLER_IMAGE_NAME $CONTROLLER_IMAGE_ID:$CONTROLLER_VERSION
+          docker push $CONTROLLER_IMAGE_ID:$CONTROLLER_VERSION
