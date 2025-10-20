@@ -259,83 +259,22 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 		return err
 	}
 
+	// Synchronize secret
 	if _, err := c.syncSecret(ctx, logger, store); err != nil {
 		logger.V(2).Error(err, "Failed to sync secret")
 		return err
 	}
 
-	// Get the configmap with the name specified in Store
-	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
-	// If the resource doesn't exist, we'll create it
-	if errors.IsNotFound(err) {
-		cfg, err := newConfigMap(store)
-		if err != nil {
-			logger.V(2).Error(err, "Failed to create configmap")
-			return err
-		}
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.GetNamespace()).Create(ctx, cfg, metav1.CreateOptions{FieldManager: FieldManager})
-	}
-
-	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later.
-	if err != nil {
+	// Synchronize configmap
+	if _, err := c.syncConfigMap(ctx, logger, store); err != nil {
+		logger.V(2).Error(err, "Failed to sync configmap")
 		return err
 	}
 
-	// Get the deployment with the name specified in Store.spec
-	deployment, err := c.deploymentsLister.Deployments(store.GetNamespace()).Get(store.GetName())
-	// If the resource doesn't exist, we'll create it
-	if errors.IsNotFound(err) {
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Create(ctx, newDeployment(store), metav1.CreateOptions{FieldManager: FieldManager})
-	}
-
-	// If an error occurs during Get/Create, we'll requeue the item so we can
-	// attempt processing again later.
+	// Synchronize deployment
+	deployment, err := c.syncDeployment(ctx, logger, store)
 	if err != nil {
-		return err
-	}
-
-	// If the Deployment is not controlled by this Store resource, we log a
-	// warning to the event recorder and return an error message.
-	if !metav1.IsControlledBy(deployment, store) {
-		msg := fmt.Sprintf(MessageResourceExists, deployment.Name)
-		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
-		return fmt.Errorf("%s", msg)
-	}
-
-	// If the Configmap is not controlled by this Store resource, we log a
-	// warning to the event recorder and return an error message.
-	if !metav1.IsControlledBy(configmap, store) {
-		msg := fmt.Sprintf(MessageResourceExists, configmap.Name)
-		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceExists, msg)
-		return fmt.Errorf("%s", msg)
-	}
-
-	// If the current config does not reflect the desired config, we should update the Configmap resource.
-	if upToDate, err := isConfigMapUpToDate(store, configmap); err != nil {
-		msg := fmt.Sprintf(MessageUnknownError, err.Error())
-		c.recorder.Event(store, corev1.EventTypeWarning, ErrUnknownError, msg)
-		return err
-	} else if upToDate == false {
-		logger.V(4).Info("Update configmap resource", "config.json")
-		cfg, err := newConfigMap(store)
-		if err != nil {
-			logger.V(2).Error(err, "Failed to create configmap")
-			return err
-		}
-		configmap, err = c.kubeclientset.CoreV1().ConfigMaps(store.Namespace).Update(ctx, cfg, metav1.UpdateOptions{FieldManager: FieldManager})
-	}
-
-	// If the current deployment does not reflect the desired deployment, we should update the Deployment resource.
-	if !isDeploymentUpToDate(store, deployment) {
-		logger.V(4).Info("Update deployment resource")
-		deployment, err = c.kubeclientset.AppsV1().Deployments(store.GetNamespace()).Update(ctx, newDeployment(store), metav1.UpdateOptions{FieldManager: FieldManager})
-	}
-
-	// If an error occurs during Update, we'll requeue the item so we can
-	// attempt processing again later. This could have been caused by a
-	// temporary network failure, or any other transient reason.
-	if err != nil {
+		logger.V(2).Error(err, "Failed to sync deployment")
 		return err
 	}
 
