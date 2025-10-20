@@ -1,6 +1,7 @@
 name: Check quick deploy file
 on:
   pull_request:
+  merge_group:
 
 jobs:
   check-quickdeploy:
