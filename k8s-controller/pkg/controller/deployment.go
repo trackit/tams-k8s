@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	//image      = "nginx:latest"
-	image      = "arthurknoep/tams-k8s:latest"
+	image      = "ghcr.io/trackit/tams-service:latest"
 	configPath = "/etc/tams/config.json"
 	volumeName = "config-file"
 )
