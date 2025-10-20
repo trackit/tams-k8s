@@ -125,7 +125,7 @@ func (c *Controller) syncConfigMap(ctx context.Context, logger klog.Logger, stor
 		msg := fmt.Sprintf(MessageUnknownError, err.Error())
 		c.recorder.Event(store, corev1.EventTypeWarning, ErrUnknownError, msg)
 		return nil, err
-	} else if upToDate == false {
+	} else if !upToDate {
 		logger.V(4).Info("Update configmap resource", "config.json")
 		cfg, err := newConfigMap(store)
 		if err != nil {
