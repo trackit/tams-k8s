@@ -1,0 +1,17 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tams-controller
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: tams-controller
+  template:
+    metadata:
+      labels:
+        app: tams-controller
+    spec:
+      containers:
+        - name: tams-controller
+          image: ghcr.io/trackit/tams-k8s-controller:latest

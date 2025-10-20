@@ -2,6 +2,7 @@ package controller
 
 import (
 	"maps"
+	"os"
 
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
@@ -12,11 +13,18 @@ import (
 )
 
 const (
-	//image      = "nginx:latest"
-	image      = "arthurknoep/tams-k8s:latest"
+	image      = "ghcr.io/trackit/tams-service:latest"
 	configPath = "/etc/tams/config.json"
 	volumeName = "config-file"
 )
+
+func buildDeploymentServiceImage() string {
+	valueFromEnv := os.Getenv("TAMS_SERVICE_IMAGE")
+	if valueFromEnv != "" {
+		return valueFromEnv
+	}
+	return image
+}
 
 // buildDeploymentLabels returns the labels for selecting the resources
 // belonging to the given Store resource.
@@ -36,11 +44,28 @@ func buildServiceAccountName(store *tamsv1alpha1.Store) string {
 	return ""
 }
 
+// buildDeploymentPort returns the port to use for the given Store resource.
 func buildDeploymentPort(store *tamsv1alpha1.Store) int32 {
 	if store.Spec.Server.Port != nil {
 		return *store.Spec.Server.Port
 	}
 	return 3000
+}
+
+// buildDeploymentEnvFrom returns the EnvFromSource for the given Store resource.
+func buildDeploymentEnvFrom(store *tamsv1alpha1.Store) []corev1.EnvFromSource {
+	if store.Spec.Aws == nil {
+		return nil
+	}
+	return []corev1.EnvFromSource{
+		{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: store.GetName(),
+				},
+			},
+		},
+	}
 }
 
 // isDeploymentUpToDate checks if the current Deployment is up to date with the
@@ -82,7 +107,10 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 	var container = deployment.Spec.Template.Spec.Containers[0]
 	var expectedContainer = expectedDeployment.Spec.Template.Spec.Containers[0]
 	// Check image matches expected configuration
-	if container.Name != "tams" || container.Image != image {
+	if container.Name != "tams" {
+		return false
+	}
+	if container.Image != buildDeploymentServiceImage() {
 		return false
 	}
 
@@ -131,22 +159,14 @@ func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  "tams",
-							Image: image,
+							Image: buildDeploymentServiceImage(),
 							Env: []corev1.EnvVar{
 								{
 									Name:  "TAMS_CONFIG_PATH",
 									Value: configPath,
 								},
 							},
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									SecretRef: &corev1.SecretEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: store.GetName(),
-										},
-									},
-								},
-							},
+							EnvFrom: buildDeploymentEnvFrom(store),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      volumeName,
