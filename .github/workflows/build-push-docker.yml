@@ -25,8 +25,6 @@ jobs:
       - name: Build the service Docker image
         run: docker build ./service --file ./service/Dockerfile --tag $SERVICE_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
       - name: Push the service Docker image
-        run: docker push ghcr.io/trackit/tams-service:latest
-      - name: Push the service Docker image
         run: |
           SERVICE_IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$SERVICE_IMAGE_NAME
           SERVICE_IMAGE_ID=$(echo $SERVICE_IMAGE_ID | tr '[A-Z]' '[a-z]')
