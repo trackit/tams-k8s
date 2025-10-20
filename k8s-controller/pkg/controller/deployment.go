@@ -44,11 +44,28 @@ func buildServiceAccountName(store *tamsv1alpha1.Store) string {
 	return ""
 }
 
+// buildDeploymentPort returns the port to use for the given Store resource.
 func buildDeploymentPort(store *tamsv1alpha1.Store) int32 {
 	if store.Spec.Server.Port != nil {
 		return *store.Spec.Server.Port
 	}
 	return 3000
+}
+
+// buildDeploymentEnvFrom returns the EnvFromSource for the given Store resource.
+func buildDeploymentEnvFrom(store *tamsv1alpha1.Store) []corev1.EnvFromSource {
+	if store.Spec.Aws == nil {
+		return nil
+	}
+	return []corev1.EnvFromSource{
+		{
+			SecretRef: &corev1.SecretEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: store.GetName(),
+				},
+			},
+		},
+	}
 }
 
 // isDeploymentUpToDate checks if the current Deployment is up to date with the
@@ -149,15 +166,7 @@ func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 									Value: configPath,
 								},
 							},
-							EnvFrom: []corev1.EnvFromSource{
-								{
-									SecretRef: &corev1.SecretEnvSource{
-										LocalObjectReference: corev1.LocalObjectReference{
-											Name: store.GetName(),
-										},
-									},
-								},
-							},
+							EnvFrom: buildDeploymentEnvFrom(store),
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      volumeName,

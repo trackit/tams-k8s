@@ -57,9 +57,14 @@ func (c *Controller) syncSecret(ctx context.Context, logger klog.Logger, store *
 	if !needAwsSecret && awsSecret != nil {
 		logger.V(4).Info("Delete non required AWS secret resource")
 		return nil, c.kubeclientset.CoreV1().Secrets(store.GetNamespace()).Delete(ctx, store.GetName(), metav1.DeleteOptions{})
+	} else if !needAwsSecret {
+		return nil, nil
 	}
-	if err != nil || awsSecret == nil {
+	if err != nil {
 		return nil, err
+	}
+	if awsSecret == nil {
+		return nil, fmt.Errorf("aws secret should be defined")
 	}
 
 	// If the Secret is not controlled by this Store resource, we log a
