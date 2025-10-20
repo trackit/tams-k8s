@@ -2,6 +2,7 @@ package controller
 
 import (
 	"maps"
+	"os"
 
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,6 +17,14 @@ const (
 	configPath = "/etc/tams/config.json"
 	volumeName = "config-file"
 )
+
+func buildDeploymentServiceImage() string {
+	valueFromEnv := os.Getenv("TAMS_SERVICE_IMAGE")
+	if valueFromEnv != "" {
+		return valueFromEnv
+	}
+	return image
+}
 
 // buildDeploymentLabels returns the labels for selecting the resources
 // belonging to the given Store resource.
@@ -81,7 +90,10 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 	var container = deployment.Spec.Template.Spec.Containers[0]
 	var expectedContainer = expectedDeployment.Spec.Template.Spec.Containers[0]
 	// Check image matches expected configuration
-	if container.Name != "tams" || container.Image != image {
+	if container.Name != "tams" {
+		return false
+	}
+	if container.Image != buildDeploymentServiceImage() {
 		return false
 	}
 
@@ -130,7 +142,7 @@ func newDeployment(store *tamsv1alpha1.Store) *appsv1.Deployment {
 					Containers: []corev1.Container{
 						{
 							Name:  "tams",
-							Image: image,
+							Image: buildDeploymentServiceImage(),
 							Env: []corev1.EnvVar{
 								{
 									Name:  "TAMS_CONFIG_PATH",
