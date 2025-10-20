@@ -25,6 +25,12 @@ export class BadRequestHttpError extends HttpError {
     }
 }
 
+export class ForbiddenHttpError extends HttpError {
+    constructor(message?: string) {
+        super(403, message ? `Forbidden: ${message}` : 'Forbidden', 'forbidden');
+    }
+}
+
 export class ConflictHttpError extends HttpError {
     constructor(message?: string) {
         super(409, message ? `Conflict: ${message}` : 'Conflict', 'conflict');

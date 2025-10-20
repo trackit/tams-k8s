@@ -1,6 +1,6 @@
 import { CreateBucketCommand, HeadBucketCommand, NotFound, S3Client } from "@aws-sdk/client-s3";
 import { log } from "@tams-k8s/logger";
-import { S3BackendConfig } from "../../config";
+import { S3BackendConfig } from "../../configParser";
 import { Backend, BucketInformation } from "../backend";
 
 export class S3BackendImpl implements Backend {

@@ -1,9 +1,19 @@
-apiVersion: trackit.io/v1
-kind: TAMS
+apiVersion: tams.trackit.io/v1alpha1
+kind: Store
 metadata:
-  name: simple-store
+  name: example-store
 spec:
-  backend:
-    s3:
-#      region: us-west-3
-      bucket: k8s-tams-test
+  database:
+    type: dynamodb
+    region: us-west-2
+    flowTableName: 'k8s-tams-test'
+    serviceTableName: 'k8s-tams-test-service'
+  backends:
+    - id: 4a6c17c4-977a-4e69-b5e1-c12cde6f9253
+      type: s3
+      default: true
+      bucketName: k8s-tams-test
+      region: us-west-2
+  replicas: 1
+  logs:
+    level: info

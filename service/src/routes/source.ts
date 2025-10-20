@@ -19,15 +19,16 @@ import {
 import { BackendManager } from "../backend/manager";
 import { SourceAdapter } from "../repository/adapters/source.adapter";
 import { RepositoriesBuilder } from "../repository/builder";
-import { BadRequestHttpError, NotFoundHttpError } from "./errorHelper";
 import { Routes } from "./generic";
 import {
+  BadRequestHttpError,
+  NotFoundHttpError,
   ParamsBodySchema,
   ParamsQSSchema,
   ParamsSchema,
   QSSchema,
   validator,
-} from "./validationHelper";
+} from "./middlewares";
 
 export class SourceRoutes extends Routes {
   constructor(repositories: RepositoriesBuilder, backends: BackendManager) {

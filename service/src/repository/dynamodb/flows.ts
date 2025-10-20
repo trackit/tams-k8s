@@ -1,7 +1,16 @@
 import { AttributeValue, DynamoDBClient, GetItemCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { DynamoDBConfig } from "../../config";
-import type { ContainerMapping, Flow, FlowCollectionItem, FlowRepository, ListFlowsFilters } from "../flows.js";
+import Joi from 'joi';
+import { DynamoDBConfig } from "../../configParser";
+import { InvalidPageTokenError } from '../errors';
+import type {
+    ContainerMapping,
+    Flow,
+    FlowCollectionItem,
+    FlowRepository,
+    ListFlowsFilters,
+    ListFlowsResponse
+} from '../flows.js';
 
 export class DDBFlowsImpl implements FlowRepository {
     private readonly client: DynamoDBClient;
@@ -72,7 +81,7 @@ export class DDBFlowsImpl implements FlowRepository {
             maxBitRate: data.maxBitRate,
             segmentDuration: data.segmentDuration,
             timerange: data.timerange,
-            flowCollection: data.flowCollection?.map(this.flowCollectionItemRecordToFlowCollectionItem),
+            flowCollection: data.flowCollection?.map((item: Record<string, any>) => this.flowCollectionItemRecordToFlowCollectionItem(item)),
             collectedBy: data.collectedBy,
             containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
             format: data.format,
@@ -81,14 +90,34 @@ export class DDBFlowsImpl implements FlowRepository {
     }
 
     private recordsToFlow(records: Record<string, AttributeValue>[]) {
-        return records.map(this.recordToFlow);
+        return records.map((record) => this.recordToFlow(record));
     }
 
-    async listFlows(filters?: ListFlowsFilters) {
+    private encodePageToken(flowId: string) {
+        return Buffer.from(flowId, 'utf8').toString('base64url');
+    }
+
+    private decodePageToken(pageToken: string) {
+        try {
+            const decoded = Buffer.from(pageToken, 'base64url').toString('utf8');
+            Joi.assert(decoded, Joi.string().uuid().required());
+            return decoded;
+        } catch (e) {
+            throw new InvalidPageTokenError();
+        }
+    }
+
+    // TODO(arthur): implement timerange filtering
+    async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
         let filterExpr: string[] = [];
         const exprAttrVal: Record<string, AttributeValue> = {};
         const exprAttrNames: Record<string, string> = {};
         let nameInc = 0;
+        let exclusiveStartKey: Record<string, AttributeValue> | undefined = undefined;
+        if (filters?.pageToken) {
+            const decoded = this.decodePageToken(filters.pageToken);
+            exclusiveStartKey = marshall({ flowId: decoded });
+        }
         if (filters?.sourceId) {
             filterExpr.push('sourceId = :sourceId');
             exprAttrVal[':sourceId'] = { S: filters.sourceId };
@@ -106,11 +135,11 @@ export class DDBFlowsImpl implements FlowRepository {
             exprAttrVal[':label'] = { S: filters.label };
         }
         if (filters?.frameWidth) {
-            filterExpr.push('frameWidth = :frameWidth');
+            filterExpr.push('essenceParameters.frameWidth = :frameWidth');
             exprAttrVal[':frameWidth'] = { N: filters.frameWidth.toString() };
         }
         if (filters?.frameHeight) {
-            filterExpr.push('frameHeight = :frameHeight');
+            filterExpr.push('essenceParameters.frameHeight = :frameHeight');
             exprAttrVal[':frameHeight'] = { N: filters.frameHeight.toString() };
         }
         Object.entries(filters?.tags ?? {}).forEach(([key, value]) => {
@@ -130,18 +159,23 @@ export class DDBFlowsImpl implements FlowRepository {
             exprAttrNames[keyName] = key;
         });
         const resp = await this.client.send(new ScanCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             FilterExpression: filterExpr.length === 0 ? undefined : filterExpr.join(' AND '),
             ExpressionAttributeNames: Object.keys(exprAttrNames).length ? exprAttrNames : undefined,
-            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined
+            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined,
+            Limit: filters?.limit,
+            ExclusiveStartKey: exclusiveStartKey
         }))
-        if (!resp.Items) return [];
-        return this.recordsToFlow(resp.Items);
+        return {
+            flows: !resp.Items ? [] : this.recordsToFlow(resp.Items),
+            limit: filters?.limit,
+            nextPageToken: resp.LastEvaluatedKey?.flowId?.S ? this.encodePageToken(resp.LastEvaluatedKey.flowId.S) : undefined,
+        };
     }
 
     async getFlowById(flowId: string): Promise<Flow | null> {
         const result = await this.client.send(new GetItemCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             Key: {
                 flowId: {
                     S: flowId,
@@ -154,7 +188,7 @@ export class DDBFlowsImpl implements FlowRepository {
 
     async putFlow(flow: Flow): Promise<Flow> {
         await this.client.send(new PutItemCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             ReturnValues: 'NONE',
             Item: this.flowToRecord(flow),
         }));

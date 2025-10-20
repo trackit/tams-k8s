@@ -5,7 +5,8 @@ import {
     DynamoDBClient,
     ResourceNotFoundException
 } from '@aws-sdk/client-dynamodb';
-import type { DynamoDBConfig } from '../../config';
+
+import type { DynamoDBConfig } from '../../configParser';
 import  { Factory } from "../factory";
 import  { FlowRepository } from "../flows";
 import { ServiceRepository } from "../service";
@@ -28,7 +29,7 @@ export class DDBRepositoryFactory implements Factory {
 
     private async createFlowTable() {
         await this.client.send(new CreateTableCommand({
-            TableName: this.config.flowTtableName,
+            TableName: this.config.flowTableName,
             AttributeDefinitions: [{
                 AttributeName: 'flowId',
                 AttributeType: 'S'
@@ -89,15 +90,15 @@ export class DDBRepositoryFactory implements Factory {
         // ensure flow table exists
         try {
             await this.client.send(new DescribeTableCommand({
-                TableName: this.config.flowTtableName,
+                TableName: this.config.flowTableName,
             }));
         } catch (e) {
             if (e instanceof ResourceNotFoundException) {
-                log.info('Flow table not found, creating...', { tableName: this.config.flowTtableName });
+                log.info('Flow table not found, creating...', { tableName: this.config.flowTableName });
                 await this.createFlowTable();
-                log.info('Flow table created', { tableName: this.config.flowTtableName });
+                log.info('Flow table created', { tableName: this.config.flowTableName });
             } else {
-                log.error('Could not verify flow table existence', { tableName: this.config.flowTtableName }, e);
+                log.error('Could not verify flow table existence', { tableName: this.config.flowTableName }, e);
                 throw e;
             }
         }

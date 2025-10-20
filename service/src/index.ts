@@ -1,23 +1,21 @@
 import express from 'express';
-import { log } from "@tams-k8s/logger";
-import { BackendManager } from "./backend/manager";
-import { readConfig } from "./config/reader";
-import { RepositoriesBuilder } from "./repository/builder";
-import { errorHandler } from "./routes/errorHelper";
-import { FlowsRoutes } from "./routes/flows";
-import { RootRoutes } from "./routes/root";
-import { ServiceRoutes } from "./routes/service";
-import { validationHelper } from "./routes/validationHelper";
+import { log } from '@tams-k8s/logger';
+import { BackendManager } from './backend/manager';
+import { ConfigReader } from './configParser/reader';
+import { RepositoriesBuilder } from './repository/builder';
+import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
+import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
 
-
-const config = readConfig();
+const config = new ConfigReader().getCachedConfig();
 
 const main = async () => {
-    const PORT = parseInt(process.env.PORT || '3000', 10);
     const app = express();
+    app.disable('x-powered-by');
+    app.set('trust proxy', true);
+    app.set('env', process.env.NODE_ENV || 'development');
 
     // enable receiving json
-    app.use(express.json());
+    app.use(bodyParser);
 
     const backends = new BackendManager(config.backends);
     await backends.initialize();
@@ -37,7 +35,7 @@ const main = async () => {
     app.use(validationHelper);
     app.use(errorHandler);
 
-    app.listen(PORT, () => log.info(`Server is running on port ${PORT}`));
+    app.listen(config.server.port, () => log.info(`Server is running on port ${config.server.port}`));
 };
 main().catch((err) => {
     log.error(err);

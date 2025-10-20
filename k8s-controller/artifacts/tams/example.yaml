@@ -1,0 +1,18 @@
+apiVersion: tams.trackit.io/v1alpha1
+kind: Store
+metadata:
+  name: example-store
+spec:
+  database:
+    type: dynamodb
+    flowTableName: 'k8s-tams-test'
+    serviceTableName: 'k8s-tams-test-service'
+  backends:
+    - id: 4a6c17c4-977a-4e69-b5e1-c12cde6f9253
+      type: s3
+      default: true
+      bucketName: k8s-tams-test
+  replicas: 1
+  serviceAccountName: default
+  logs:
+    level: info

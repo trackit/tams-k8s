@@ -12,7 +12,7 @@ export interface PostServiceRequest {
     description?: string;
 }
 
-export interface GetStorageBackendsResponseItem {
+export interface StorageBackend {
     id: string;
     label: string;
     store_type: string;
@@ -22,4 +22,4 @@ export interface GetStorageBackendsResponseItem {
     store_product: string;
     default_storage?: boolean;
 }
-export type GetStorageBackendsResponse = GetStorageBackendsResponseItem[];
+export type StorageBackends = StorageBackend[];

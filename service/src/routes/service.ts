@@ -1,11 +1,11 @@
+import Joi from 'joi';
 import { Request, Response } from 'express'
-import { ValidatedRequest } from "express-joi-validation";
-import Joi from "joi";
-import { GetServiceResponse, GetStorageBackendsResponse, PostServiceRequest } from "@tams-k8s/api";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
-import { Routes } from "./generic";
-import { BodySchema, validator } from "./validationHelper";
+import { ValidatedRequest } from 'express-joi-validation';
+import { GetServiceResponse, StorageBackends, PostServiceRequest, storageBackendsValidator } from '@tams-k8s/api';
+import { BackendManager } from '../backend/manager';
+import { RepositoriesBuilder } from '../repository/builder';
+import { Routes } from './generic';
+import { BodySchema, validator } from './middlewares';
 
 const updateServiceRequestValidator = Joi.object<PostServiceRequest>({
     name: Joi.string().required(),
@@ -18,7 +18,7 @@ export class ServiceRoutes extends Routes {
 
         this.route.get('/', this.get.bind(this));
         this.route.post('/', validator.body(updateServiceRequestValidator), this.update.bind(this));
-        this.route.get('/storage-backends', this.getStorageBackends.bind(this));
+        this.route.get('/storage-backends', validator.response(storageBackendsValidator), this.getStorageBackends.bind(this));
     }
 
     private async get(_: Request, res: Response<GetServiceResponse>) {
@@ -43,7 +43,7 @@ export class ServiceRoutes extends Routes {
         res.sendStatus(204);
     }
 
-    private async getStorageBackends(_: Request, res: Response<GetStorageBackendsResponse>) {
+    private async getStorageBackends(_: Request, res: Response<StorageBackends>) {
         res.json(await Promise.all(this.backends.getBackends().map(async (backend) => {
             const info = await backend.getBucketInformation();
             return {
