@@ -15,7 +15,7 @@ jobs:
           
           quick_deploy_content=$(cat ./k8s-controller/artifacts/tams/quick-deploy.yaml)
           
-          expected_content=$(echo -e "$controller_content---\n$crd_content")
+          expected_content=$(echo -e "$controller_content\n---\n$crd_content")
           
           echo "Comparing quickdeploy file content with expected content"
           diff <(echo -e "$quick_deploy_content") <(echo -e "$expected_content")
