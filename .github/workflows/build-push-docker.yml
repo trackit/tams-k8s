@@ -1,40 +1,39 @@
-#name: Docker Image CI
-#
-#on:
-#  push:
-#    branches:
-#      - master
-#      - feat/cicd
-#    tags:
-#      - v*
-#  pull_request:
-#
-#env:
-#  SERVICE_IMAGE_NAME: tams-service
-#
-#jobs:
-#  build_service:
-#    runs-on: ubuntu-latest
-#    name: Build and push service Docker image
-#    permissions:
-#      packages: write
-#      contents: read
-#    steps:
-#      - uses: actions/checkout@v4
-#      - name: Log in to registry
-#        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-#      - name: Build the service Docker image
-#        run: docker build . --file ./service/Dockerfile --tag $SERVICE_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
-#      - name: Push the service Docker image
-#        run: docker push ghcr.io/trackit/tams-service:latest
-#      - name: Push the service Docker image
-#        run: |
-#          SERVICE_IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$SERVICE_IMAGE_NAME
-#          SERVICE_IMAGE_ID=$(echo $SERVICE_IMAGE_ID | tr '[A-Z]' '[a-z]')
-#          SERVICE_VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
-#          [[ "${{ github.ref }}" == "refs/tags/"* ]] && SERVICE_VERSION=$(echo $SERVICE_VERSION | sed -e 's/^v//')
-#          [ "$SERVICE_VERSION" == "main" ] && SERVICE_VERSION=latest
-#          echo SERVICE_IMAGE_ID=$SERVICE_IMAGE_ID
-#          echo SERVICE_VERSION=$SERVICE_VERSION
-#          docker tag $SERVICE_IMAGE_NAME $SERVICE_IMAGE_ID:$SERVICE_VERSION
-#          docker push $SERVICE_IMAGE_ID:$SERVICE_VERSION
+name: Docker Image CI
+
+on:
+  push:
+    branches:
+      - master
+      - feat/cicd
+    tags:
+      - v*
+
+env:
+  SERVICE_IMAGE_NAME: tams-service
+
+jobs:
+  build_service:
+    runs-on: ubuntu-latest
+    name: Build and push service Docker image
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build the service Docker image
+        run: docker build . --file ./service/Dockerfile --tag $SERVICE_IMAGE_NAME --label "runnumber=${GITHUB_RUN_ID}"
+      - name: Push the service Docker image
+        run: docker push ghcr.io/trackit/tams-service:latest
+      - name: Push the service Docker image
+        run: |
+          SERVICE_IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$SERVICE_IMAGE_NAME
+          SERVICE_IMAGE_ID=$(echo $SERVICE_IMAGE_ID | tr '[A-Z]' '[a-z]')
+          SERVICE_VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && SERVICE_VERSION=$(echo $SERVICE_VERSION | sed -e 's/^v//')
+          [ "$SERVICE_VERSION" == "main" ] && SERVICE_VERSION=latest
+          echo SERVICE_IMAGE_ID=$SERVICE_IMAGE_ID
+          echo SERVICE_VERSION=$SERVICE_VERSION
+          docker tag $SERVICE_IMAGE_NAME $SERVICE_IMAGE_ID:$SERVICE_VERSION
+          docker push $SERVICE_IMAGE_ID:$SERVICE_VERSION
