@@ -1,4 +1,4 @@
-name: check-quickdeploye.yaml
+name: Check quick deploy file
 on:
   pull_request:
 
