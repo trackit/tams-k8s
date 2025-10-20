@@ -89,6 +89,7 @@ func isConfigMapUpToDate(store *tamsv1alpha1.Store, currentConfig *corev1.Config
 	return true, nil
 }
 
+// syncConfigMap ensures that the ConfigMap exists and is up to date for the given store.
 func (c *Controller) syncConfigMap(ctx context.Context, logger klog.Logger, store *tamsv1alpha1.Store) (*corev1.ConfigMap, error) {
 	// Get the configmap with the name specified in Store
 	configmap, err := c.configmapLister.ConfigMaps(store.GetNamespace()).Get(store.GetName())
