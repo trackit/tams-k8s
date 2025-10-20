@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tams-controller
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: tams-controller
+  template:
+    metadata:
+      labels:
+        app: tams-controller
+    spec:
+      containers:
+        - name: tams-controller
+          image: arthurknoep/tams-controller-k8s:latest
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: stores.tams.trackit.io
+spec:
+  group: tams.trackit.io
+  preserveUnknownFields: false
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: [spec]
+          properties:
+            spec:
+              type: object
+              required: [database]
+              properties:
+                database:
+                  type: object
+                  required: [type]
+                  properties:
+                    type:
+                      type: string
+                      enum: [dynamodb, memory]
+                    flowTableName:
+                      type: string
+                    serviceTableName:
+                      type: string
+                    region:
+                      type: string
+                    endpoint:
+                      type: string
+                  oneOf:
+                    - properties:
+                        type:
+                          enum: [dynamodb]
+                      required:
+                        - flowTableName
+                        - serviceTableName
+                    - properties:
+                        type:
+                          enum: [memory]
+
+                backends:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, type]
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+                        enum: [s3]
+                      default:
+                        type: boolean
+                      bucketName:
+                        type: string
+                      region:
+                        type: string
+                      endpoint:
+                        type: string
+                    oneOf:
+                      - properties:
+                          type:
+                            enum: [s3]
+                        required:
+                          - bucketName
+
+                replicas:
+                  type: integer
+                  minimum: 1
+                  maximum: 10
+
+                serviceAccountName:
+                  type: string
+
+                aws:
+                  type: object
+                  required: [accessKeyId, secretAccessKey]
+                  properties:
+                    accessKeyId:
+                      type: string
+                    secretAccessKey:
+                      type: string
+
+                server:
+                  type: object
+                  properties:
+                    port:
+                      type: integer
+                      minimum: 1
+                      maximum: 65535
+
+                logs:
+                  type: object
+                  properties:
+                    level:
+                      type: string
+                      enum: [debug, info, warn, error]
+            status:
+              type: object
+              properties:
+                availableReplicas:
+                  type: integer
+      subresources:
+        status: {}
+  names:
+    kind: Store
+    plural: stores
+  scope: Namespaced
