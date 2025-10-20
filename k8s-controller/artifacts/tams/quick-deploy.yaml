@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: tams-controller
-          image: arthurknoep/tams-controller-k8s:latest
+          image: ghcr.io/trackit/tams-k8s-controller:latest
 ---
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
