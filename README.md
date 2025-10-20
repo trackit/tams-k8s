@@ -1,5 +1,5 @@
 # TAMS on kubernetes
-This repository provides a kubernetes deployment of TAMS (Time Adressable Media Store).
+This repository provides a kubernetes deployment of TAMS (Time Addressable Media Store).
 
 ## Getting started
 
