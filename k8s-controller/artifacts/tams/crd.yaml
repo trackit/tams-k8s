@@ -77,15 +77,8 @@ spec:
 
                 serviceAccountName:
                   type: string
-
-                aws:
-                  type: object
-                  required: [accessKeyId, secretAccessKey]
-                  properties:
-                    accessKeyId:
-                      type: string
-                    secretAccessKey:
-                      type: string
+                secretName:
+                  type: string
 
                 server:
                   type: object

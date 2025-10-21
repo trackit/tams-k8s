@@ -23,7 +23,7 @@ type StoreSpec struct {
 	Logs           StoreLogsCfg      `json:"logs"`
 	Server         StoreServerCfg    `json:"server"`
 	Replicas       *int32            `json:"replicas"`
-	Aws            *StoreAwsCfg      `json:"aws,omitempty"`
+	SecretName     *string           `json:"secretName,omitempty"`
 	ServiceAccount *string           `json:"serviceAccountName,omitempty"`
 }
 
@@ -40,12 +40,6 @@ type StoreServerCfg struct {
 // StoreLogsCfg is the log configuration for a Store resource
 type StoreLogsCfg struct {
 	Level string `json:"level,omitempty"`
-}
-
-// StoreAwsCfg is the AWS configuration for a Store resource
-type StoreAwsCfg struct {
-	AccessKeyId     string `json:"accessKeyId"`
-	SecretAccessKey string `json:"secretAccessKey"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

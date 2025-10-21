@@ -58,14 +58,14 @@ func buildDeploymentPort(store *tamsv1alpha1.Store) int32 {
 
 // buildDeploymentEnvFrom returns the EnvFromSource for the given Store resource.
 func buildDeploymentEnvFrom(store *tamsv1alpha1.Store) []corev1.EnvFromSource {
-	if store.Spec.Aws == nil {
+	if store.Spec.SecretName == nil {
 		return nil
 	}
 	return []corev1.EnvFromSource{
 		{
 			SecretRef: &corev1.SecretEnvSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: store.GetName(),
+					Name: *store.Spec.SecretName,
 				},
 			},
 		},
@@ -206,8 +206,29 @@ func isDeploymentUpToDate(store *tamsv1alpha1.Store, deployment *appsv1.Deployme
 	return true
 }
 
+// checkSecretExistence checks if the secret provided in configuration exists, otherwise it generates an event
+func (c *Controller) checkSecretExistence(ctx context.Context, logger klog.Logger, store *tamsv1alpha1.Store) error {
+	if store.Spec.SecretName == nil {
+		return nil
+	}
+	_, err := c.kubeclientset.CoreV1().Secrets(store.GetNamespace()).Get(ctx, *store.Spec.SecretName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		msg := fmt.Sprintf(MessageResourceDoesNotExists, "secret", *store.Spec.SecretName)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceDoesNotExists, msg)
+		return fmt.Errorf("%s", msg)
+	}
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // syncDeployment creates or updates a Deployment for a Store resource.
 func (c *Controller) syncDeployment(ctx context.Context, logger klog.Logger, store *tamsv1alpha1.Store) (*appsv1.Deployment, error) {
+	// If there is a secret specified in the configuration, check if it exists
+	if err := c.checkSecretExistence(ctx, logger, store); err != nil {
+		return nil, err
+	}
 	// Get the deployment with the name specified in Store.spec
 	deployment, err := c.deploymentsLister.Deployments(store.GetNamespace()).Get(store.GetName())
 	// If the resource doesn't exist, we'll create it
