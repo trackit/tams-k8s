@@ -34,15 +34,15 @@ import (
 const controllerAgentName = "tams-controller"
 
 const (
-	SuccessSynced                = "Synced"
-	ErrResourceExists            = "ErrResourceExists"
-	ErrResourceDoesNotExists     = "ErrResourceDoesNotExists"
-	ErrUnknownError              = "ErrUnknownError"
-	MessageResourceExists        = "Resource %q already exists and is not managed by Store"
-	MessageResourceDoesNotExists = "Resource %s/%s does not exists"
-	MessageUnknownError          = "An unknown error occurred while processing the Store: %s"
-	MessageResourceSynced        = "Store synced successfully"
-	FieldManager                 = controllerAgentName
+	SuccessSynced               = "Synced"
+	ErrResourceExists           = "ErrResourceExists"
+	ErrResourceDoesNotExist     = "ErrResourceDoesNotExist"
+	ErrUnknownError             = "ErrUnknownError"
+	MessageResourceExists       = "Resource %q already exists and is not managed by Store"
+	MessageResourceDoesNotExist = "Resource %s/%s does not exist"
+	MessageUnknownError         = "An unknown error occurred while processing the Store: %s"
+	MessageResourceSynced       = "Store synced successfully"
+	FieldManager                = controllerAgentName
 )
 
 type Controller struct {

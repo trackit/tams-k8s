@@ -213,8 +213,8 @@ func (c *Controller) checkSecretExistence(ctx context.Context, logger klog.Logge
 	}
 	_, err := c.kubeclientset.CoreV1().Secrets(store.GetNamespace()).Get(ctx, *store.Spec.SecretName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		msg := fmt.Sprintf(MessageResourceDoesNotExists, "secret", *store.Spec.SecretName)
-		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceDoesNotExists, msg)
+		msg := fmt.Sprintf(MessageResourceDoesNotExist, store.GetNamespace(), *store.Spec.SecretName)
+		c.recorder.Event(store, corev1.EventTypeWarning, ErrResourceDoesNotExist, msg)
 		return fmt.Errorf("%s", msg)
 	}
 	if err != nil {
