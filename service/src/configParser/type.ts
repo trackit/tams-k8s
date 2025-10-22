@@ -4,8 +4,8 @@ export interface DynamoDBConfig {
     flowTableName: string;
     serviceTableName: string;
     sourceTableName: string;
-    region?: string
-    endpoint?: string
+    region?: string;
+    endpoint?: string;
 }
 
 export interface MemoryDBConfig {

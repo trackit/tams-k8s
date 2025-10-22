@@ -1,10 +1,10 @@
 import Joi from "joi";
-import { SourceUrn, GetSourcesQueryParamsRequest } from "@tams-k8s/api";
+import { FormatUrn, GetSourcesQueryParamsRequest } from "@tams-k8s/api";
 
 export const listSourcesQueryParamsValidator =
   Joi.object<GetSourcesQueryParamsRequest>({
     label: Joi.string(),
-    format: Joi.string().valid(...Object.values(SourceUrn)),
+    format: Joi.string().valid(...Object.values(FormatUrn)),
     page: Joi.string(),
     limit: Joi.number().integer().min(1),
   })

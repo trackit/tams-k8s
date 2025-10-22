@@ -4,6 +4,7 @@ import {
   GetItemCommand,
   PutItemCommand,
   ScanCommand,
+  ScanCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { DynamoDBConfig } from "../../configParser";
@@ -13,6 +14,7 @@ import type {
   SourceCollectionItem,
   SourceRepository,
 } from "../source";
+import { InvalidPageTokenError } from "repository/errors";
 
 export class DDBSourcesImpl implements SourceRepository {
   private readonly client: DynamoDBClient;
@@ -59,7 +61,6 @@ export class DDBSourcesImpl implements SourceRepository {
       sourceCollection: data.sourceCollection?.map(
         this.sourceCollectionItemRecordToSourceCollectionItem.bind(this)
       ),
-      readOnly: data.readOnly,
     } as Source;
   }
 
@@ -105,7 +106,7 @@ export class DDBSourcesImpl implements SourceRepository {
       exprAttrNames[keyName] = key;
     });
 
-    const scanParams: any = {
+    const scanParams: ScanCommandInput = {
       TableName: this.config.sourceTableName,
       FilterExpression:
         filterExpr.length === 0 ? undefined : filterExpr.join(" AND "),
@@ -121,7 +122,7 @@ export class DDBSourcesImpl implements SourceRepository {
           Buffer.from(filters.page, "base64").toString("utf-8")
         );
       } catch (error) {
-        console.error("Invalid page token:", error);
+        new InvalidPageTokenError();
       }
     }
 

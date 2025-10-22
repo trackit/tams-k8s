@@ -1,10 +1,10 @@
-import { SourceUrn } from "./source.body";
+import { FormatUrn } from "@tams-k8s/api";
 
 export interface GetSourcesQueryParamsRequest {
   label?: string;
   [key: `tags.${string}`]: string;
   [key: `tags_exists.${string}`]: string;
-  format?: SourceUrn;
+  format?: FormatUrn;
   page?: string;
   limit?: number;
 }

@@ -1,5 +1,6 @@
 import Joi from "joi";
-import { Source, SourceUrn, SourceCollectionItem } from "../models/source.body";
+import { Source, SourceCollectionItem } from "../models/source.body";
+import { FormatUrn } from "../models/commun.body";
 
 export const sourceCollectionItemValidator = Joi.object<SourceCollectionItem>({
   id: Joi.string().uuid().required(),
@@ -9,8 +10,8 @@ export const sourceCollectionItemValidator = Joi.object<SourceCollectionItem>({
 export const sourceValidator = Joi.object<Source>({
   id: Joi.string().uuid().required(),
   format: Joi.string()
-  .valid(...Object.values(SourceUrn))
-  .required(),
+    .valid(...Object.values(FormatUrn))
+    .required(),
 
   label: Joi.string(),
   description: Joi.string(),

@@ -5,6 +5,7 @@ import { ConfigReader } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
 import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
+import { SourceRoutes } from 'routes/source';
 
 const config = new ConfigReader().getCachedConfig();
 
@@ -31,6 +32,9 @@ const main = async () => {
 
     const flowRoutes = new FlowsRoutes(repositories, backends);
     app.use('/flows', flowRoutes.getRoutes());
+
+    const sourceRoutes = new SourceRoutes(repositories, backends);
+    app.use('/sources', sourceRoutes.getRoutes());
 
     app.use(validationHelper);
     app.use(errorHandler);

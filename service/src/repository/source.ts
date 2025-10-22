@@ -1,4 +1,4 @@
-import { SourceUrn } from "@tams-k8s/api";
+import { FormatUrn } from "@tams-k8s/api";
 
 export interface ListSourcesFilters {
   format?: string;
@@ -17,11 +17,11 @@ export interface SourceCollectionItem {
 
 export interface Source {
   id: string;
-  format: SourceUrn;
+  format: FormatUrn;
 
   label?: string;
   description?: string;
-  tags?: Record<string, string>;
+  tags?: Record<string, string | string[]>;
 
   created?: string | Date;
   updated?: string | Date;

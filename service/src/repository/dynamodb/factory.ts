@@ -112,7 +112,7 @@ export class DDBRepositoryFactory implements Factory {
               log.info("Source table not found, creating...", {
                 tableName: this.config.sourceTableName,
               });
-              await this.createFlowTable();
+              await this.createSourceTable();
               log.info("Source table created", {
                 tableName: this.config.sourceTableName,
               });
