@@ -14,7 +14,6 @@ type Store struct {
 
 	Spec   StoreSpec   `json:"spec"`
 	Status StoreStatus `json:"status"`
-	Test   *string     `json:"test"`
 }
 
 // StoreSpec is the spec for a Store resource
