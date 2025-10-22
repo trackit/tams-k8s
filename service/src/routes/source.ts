@@ -9,12 +9,11 @@ import {
   GetSourcePathParams,
   getSourcePathParamsValidator,
   GetSourcesQueryParamsRequest,
-  GetSourceQueryParamsRequest,
   PutSourcePathParams,
   putSourcePathParamsValidator,
   listSourcesQueryParamsValidator,
-  GetSourceTagsPathParams,
-  getSourceTagsPathParamsValidator,
+  GetSourceTagPathParams,
+  getSourceTagPathParamsValidator,
 } from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
 import { SourceAdapter } from "../repository/adapters/source.adapter";
@@ -24,7 +23,6 @@ import {
   BadRequestHttpError,
   NotFoundHttpError,
   ParamsBodySchema,
-  ParamsQSSchema,
   ParamsSchema,
   QSSchema,
   validator,
@@ -58,7 +56,7 @@ export class SourceRoutes extends Routes {
 
     this.route.get<any, SourceTags>(
       "/:sourceId/tags",
-      validator.params(getSourceTagsPathParamsValidator),
+      validator.params(getSourceTagPathParamsValidator),
       validator.response(sourceTagsValidator.required()),
       this.getSourceTags.bind(this)
     );
@@ -96,13 +94,11 @@ export class SourceRoutes extends Routes {
       doesNotHaveTags,
     });
 
-    res.json(sources.map((source) => SourceAdapter.toApi(source)));
+    res.json(sources.sources.map((source) => SourceAdapter.toApi(source)));
   }
 
   private async getSource(
-    req: ValidatedRequest<
-      ParamsQSSchema<GetSourcePathParams, GetSourceQueryParamsRequest>
-    >,
+    req: ValidatedRequest<ParamsSchema<GetSourcePathParams>>,
     res: Response<Source>
   ) {
     const sourceRepository = this.repositories.getSourceRepository();
@@ -138,7 +134,7 @@ export class SourceRoutes extends Routes {
   }
 
   private async getSourceTags(
-    req: ValidatedRequest<ParamsSchema<GetSourceTagsPathParams>>,
+    req: ValidatedRequest<ParamsSchema<GetSourceTagPathParams>>,
     res: Response<SourceTags>
   ) {
     const sourceRepository = this.repositories.getSourceRepository();

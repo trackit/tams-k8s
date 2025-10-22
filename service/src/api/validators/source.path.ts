@@ -3,7 +3,7 @@ import {
   PutSourcePathParams,
   PutSourceTagsPathParams,
   GetSourcePathParams,
-  GetSourceTagsPathParams,
+  GetSourceTagPathParams,
 } from "../models/source.path";
 
 export const putSourcePathParamsValidator = Joi.object<PutSourcePathParams>({
@@ -19,7 +19,6 @@ export const getSourcePathParamsValidator = Joi.object<GetSourcePathParams>({
     sourceId: Joi.string().uuid().required(),
 });
 
-export const getSourceTagsPathParamsValidator = Joi.object<GetSourceTagsPathParams>({
+export const getSourceTagPathParamsValidator = Joi.object<GetSourceTagPathParams>({
     sourceId: Joi.string().uuid().required(),
-    tagName: Joi.string().required(),
 });

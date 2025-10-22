@@ -6,7 +6,7 @@ export const listSourcesQueryParamsValidator =
     label: Joi.string(),
     format: Joi.string().valid(...Object.values(FormatUrn)),
     page: Joi.string(),
-    limit: Joi.number().integer().min(1),
+    limit: Joi.number().integer().min(1).max(50).default(50),
   })
     .pattern(/^tag\..+$/, Joi.string())
     .pattern(/^tag_exists\..+$/, Joi.boolean());

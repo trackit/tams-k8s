@@ -13,6 +13,7 @@ import type {
   Source,
   SourceCollectionItem,
   SourceRepository,
+  ListSourcesResponse,
 } from "../source";
 import { InvalidPageTokenError } from "repository/errors";
 
@@ -23,6 +24,10 @@ export class DDBSourcesImpl implements SourceRepository {
   constructor(client: DynamoDBClient, config: DynamoDBConfig) {
     this.client = client;
     this.config = config;
+  }
+
+  private encodePageToken(sourceId: string) {
+    return Buffer.from(sourceId, "utf8").toString("base64url");
   }
 
   private sourceCollectionItemRecordToSourceCollectionItem(
@@ -70,7 +75,9 @@ export class DDBSourcesImpl implements SourceRepository {
     return records.map((record) => this.recordToSource(record));
   }
 
-  async listSources(filters?: ListSourcesFilters): Promise<Source[]> {
+  async listSources(
+    filters?: ListSourcesFilters
+  ): Promise<ListSourcesResponse> {
     const filterExpr: string[] = [];
     const exprAttrVal: Record<string, AttributeValue> = {};
     const exprAttrNames: Record<string, string> = {};
@@ -131,8 +138,15 @@ export class DDBSourcesImpl implements SourceRepository {
     }
 
     const resp = await this.client.send(new ScanCommand(scanParams));
-    if (!resp.Items) return [];
-    return this.recordsToSources(resp.Items);
+    const nextPageToken = resp.LastEvaluatedKey?.sourceId?.S
+      ? this.encodePageToken(resp.LastEvaluatedKey.sourceId.S)
+      : undefined;
+
+    return {
+      sources: !resp.Items ? [] : this.recordsToSources(resp.Items),
+      limit: filters?.limit,
+      nextPageToken: nextPageToken,
+    };
   }
 
   async getSourceById(sourceId: string): Promise<Source | null> {

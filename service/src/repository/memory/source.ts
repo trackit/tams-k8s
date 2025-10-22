@@ -1,4 +1,9 @@
-import type { ListSourcesFilters, Source, SourceRepository } from "../source";
+import type {
+  ListSourcesFilters,
+  Source,
+  SourceRepository,
+  ListSourcesResponse,
+} from "../source";
 
 export class MemorySourceImpl implements SourceRepository {
   private readonly sources: Source[];
@@ -7,50 +12,62 @@ export class MemorySourceImpl implements SourceRepository {
     this.sources = [];
   }
 
-  async listSources(filters?: ListSourcesFilters): Promise<Source[]> {
-    let result = [...this.sources];
+  private encodePageToken(sourceId: string) {
+    return Buffer.from(sourceId, "utf8").toString("base64url");
+  }
+
+  async listSources(
+    filters?: ListSourcesFilters
+  ): Promise<ListSourcesResponse> {
+    let filteredSources = this.sources;
+    let nextPageToken: string | undefined = undefined;
 
     if (filters) {
       const { format, label, tags, haveTags, doesNotHaveTags, page, limit } =
         filters;
 
       if (format) {
-        result = result.filter((s) => s.format === format);
+        filteredSources = filteredSources.filter((s) => s.format === format);
       }
 
       if (label) {
         const lowerLabel = label.toLowerCase();
-        result = result.filter((s) =>
+        filteredSources = filteredSources.filter((s) =>
           s.label?.toLowerCase().includes(lowerLabel)
         );
       }
 
       if (tags) {
-        result = result.filter((s) =>
+        filteredSources = filteredSources.filter((s) =>
           Object.entries(tags).every(([key, value]) => s.tags?.[key] === value)
         );
       }
 
       if (haveTags && haveTags.length > 0) {
-        result = result.filter((s) =>
+        filteredSources = filteredSources.filter((s) =>
           haveTags.every((key) => s.tags && key in s.tags)
         );
       }
 
       if (doesNotHaveTags && doesNotHaveTags.length > 0) {
-        result = result.filter(
+        filteredSources = filteredSources.filter(
           (s) => !doesNotHaveTags.some((key) => s.tags && key in s.tags)
         );
       }
 
-      if (limit && Number(limit) > 0) {
-        const p = Number(page) > 0 ? Number(page) : 1;
-        const start = (p - 1) * Number(limit);
-        result = result.slice(start, start + Number(limit));
+      if (limit) {
+        if (filteredSources.length > limit) {
+          nextPageToken = this.encodePageToken(filteredSources[limit - 1].id);
+        }
+        filteredSources = filteredSources.slice(0, limit);
       }
     }
 
-    return result;
+    return {
+      sources: filteredSources,
+      limit: filters?.limit,
+      nextPageToken: nextPageToken,
+    };
   }
 
   async getSourceById(sourceId: string): Promise<Source | null> {

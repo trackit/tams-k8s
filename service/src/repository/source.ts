@@ -32,8 +32,14 @@ export interface Source {
   sourceCollection?: SourceCollectionItem[];
 }
 
+export interface ListSourcesResponse {
+  sources: Source[];
+  limit?: number;
+  nextPageToken?: string;
+}
+
 export interface SourceRepository {
-  listSources(filters?: ListSourcesFilters): Promise<Source[]>;
+  listSources(filters?: ListSourcesFilters): Promise<ListSourcesResponse>;
   getSourceById(sourceId: string): Promise<Source | null>;
   putSource(source: Source): Promise<Source>;
 }

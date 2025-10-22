@@ -11,7 +11,6 @@ export interface GetSourcePathParams {
   sourceId: string;
 }
 
-export interface GetSourceTagsPathParams {
+export interface GetSourceTagPathParams {
   sourceId: string;
-  tagName: string;
 }
