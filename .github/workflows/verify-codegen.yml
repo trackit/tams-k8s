@@ -1,15 +1,17 @@
-name: Verify Codegen
+name: Verify codegen
 on:
   pull_request:
 jobs:
   verify-codegen:
     runs-on: ubuntu-latest
-    name: Verify Codegen
+    name: Verify codegen
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
         run: |
           cd ./k8s-controller
           go mod vendor
-      - name: Verify Codegen
-        run: ./k8s-controller/hack/verify-codegen.sh
+      - name: Verify codegen
+        run: |
+          cd ./k8s-controller
+          ./hack/verify-codegen.sh
