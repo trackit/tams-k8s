@@ -14,6 +14,7 @@ type Store struct {
 
 	Spec   StoreSpec   `json:"spec"`
 	Status StoreStatus `json:"status"`
+	Test   *string     `json:"test"`
 }
 
 // StoreSpec is the spec for a Store resource
@@ -25,7 +26,6 @@ type StoreSpec struct {
 	Replicas       *int32            `json:"replicas"`
 	SecretName     *string           `json:"secretName,omitempty"`
 	ServiceAccount *string           `json:"serviceAccountName,omitempty"`
-	Test           string            `json:"test"`
 }
 
 // StoreStatus is the status for a Store resource
