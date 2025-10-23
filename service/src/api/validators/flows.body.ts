@@ -16,6 +16,9 @@ import {
     ImageFlow,
     AudioFlow,
     AudioUNCType,
+    PostFlowMediaStorageRequest,
+    MediaBucketObjectStoreItem,
+    MediaBucketObjectStore,
 } from "@tams-k8s/api";
 import { codecValidator } from './codec';
 import { timerangeValidator } from './timerange';
@@ -153,3 +156,23 @@ export const flowFlowCollectionValidator = Joi.array().items(flowCollectionItemV
 export const flowMaxBitRateValidator = Joi.number().min(0);
 
 export const flowAvgBitRateValidator = Joi.number().min(0);
+
+export const postFlowMediaStorageRequestValidator = Joi.object<PostFlowMediaStorageRequest>({
+    storage_id: Joi.string().uuid(),
+    limit: Joi.number().min(1).max(50),
+    object_ids: Joi.array().items(Joi.string()).min(1),
+});
+
+export const mediaBucketObjectStoreItemValidator = Joi.object<MediaBucketObjectStoreItem>({
+    object_id: Joi.string().required(),
+    put_url: Joi.object<MediaBucketObjectStoreItem['put_url']>({
+        url: Joi.string().uri().required(),
+        body: Joi.string(),
+        'content-type': Joi.string(),
+        headers: Joi.object().pattern(Joi.string(), Joi.string())
+    }).required(),
+})
+
+export const mediaBucketObjectStoreValidator = Joi.object<MediaBucketObjectStore>({
+    media_objects: Joi.array().items(mediaBucketObjectStoreItemValidator),
+});

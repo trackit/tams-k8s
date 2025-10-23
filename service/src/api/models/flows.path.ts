@@ -99,3 +99,8 @@ export interface PutFlowAvgBitRatePathParams {
 export interface DeleteFlowAvgBitRatePathParams {
     flowId: string;
 }
+
+// Media storage
+export interface PostFlowMediaStoragePathParams {
+    flowId: string;
+}
