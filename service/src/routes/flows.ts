@@ -22,6 +22,7 @@ import { FlowsDescription } from './flows.description';
 import { FlowsFlowCollection } from './flows.flowCollection';
 import { FlowsLabel } from './flows.label';
 import { FlowsMaxBitRate } from './flows.maxBitRate';
+import { FlowMediaStorageRoutes } from './flows.mediaStorage';
 import { FlowsReadOnly } from './flows.readOnly';
 import { FlowsTags } from './flows.tags';
 import {
@@ -46,6 +47,7 @@ export class FlowsRoutes extends Routes {
         const flowFlowCollectionRoutes = new FlowsFlowCollection(repositories, backends);
         const flowMaxBitRateRoutes = new FlowsMaxBitRate(repositories, backends);
         const flowAvgBitRateRoutes = new FlowsAvgBitRate(repositories, backends);
+        const flowMediaStorageRoutes = new FlowMediaStorageRoutes(repositories, backends);
 
         this.route.get(
             '/',
@@ -74,6 +76,7 @@ export class FlowsRoutes extends Routes {
         this.route.use(flowFlowCollectionRoutes.getRoutes());
         this.route.use(flowMaxBitRateRoutes.getRoutes());
         this.route.use(flowAvgBitRateRoutes.getRoutes());
+        this.route.use(flowMediaStorageRoutes.getRoutes());
     }
 
     private buildNextPageUrl(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, nextPageToken: string): string {

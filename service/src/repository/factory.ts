@@ -1,14 +1,10 @@
 import type { FlowRepository } from "./flows";
+import { MediaObjectsRepository } from './mediaObjects';
 import { ServiceRepository } from "./service";
 
-export abstract class Factory {
-    async initialize() {};
-
-    getFlowRepository(): FlowRepository {
-        throw new Error("Not implemented");
-    };
-
-    getServiceRepository(): ServiceRepository {
-        throw new Error("Not implemented");
-    }
+export interface Factory {
+    initialize(): Promise<void>;
+    getFlowRepository(): FlowRepository;
+    getServiceRepository(): ServiceRepository;
+    getMediaObjectRepository(): MediaObjectsRepository;
 }

@@ -109,6 +109,7 @@ export class ConfigReader {
                     type,
                     flowTableName: this.parseKey(['database', 'flowTableName']),
                     serviceTableName: this.parseKey(['database', 'serviceTableName']),
+                    mediaObjectTableName: this.parseKey(['database', 'mediaObjectTableName']),
                     region: this.parseKey(['database', 'region']),
                     endpoint: this.parseKey(['database', 'endpoint']),
                 };

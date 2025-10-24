@@ -2,6 +2,7 @@ import type { DBConfig } from '../configParser';
 import { DDBRepositoryFactory } from "./dynamodb/factory";
 import  { type Factory } from "./factory";
 import  { FlowRepository } from "./flows";
+import { MediaObjectsRepository } from './mediaObjects';
 import { MemoryRepositoryFactory } from "./memory/factory";
 import { ServiceRepository } from "./service";
 
@@ -34,5 +35,9 @@ export class RepositoriesBuilder implements Factory {
 
     getServiceRepository(): ServiceRepository {
         return this.factory.getServiceRepository();
+    }
+
+    getMediaObjectRepository(): MediaObjectsRepository {
+        return this.factory.getMediaObjectRepository();
     }
 }

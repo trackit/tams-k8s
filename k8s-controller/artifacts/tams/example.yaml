@@ -8,6 +8,7 @@ spec:
     region: us-west-2
     flowTableName: 'k8s-tams-test'
     serviceTableName: 'k8s-tams-test-service'
+    mediaObjectTableName: 'k8s-tams-test-media-object'
   backends:
     - id: 4a6c17c4-977a-4e69-b5e1-c12cde6f9253
       type: s3
