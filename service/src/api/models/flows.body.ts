@@ -194,7 +194,7 @@ export interface MediaBucketObjectStoreItem {
         url: string;
         body?: string;
         'content-type'?: string;
-        headers: Record<string, string>;
+        headers?: Record<string, string>;
     };
 }
 
