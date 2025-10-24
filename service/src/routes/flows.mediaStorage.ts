@@ -53,7 +53,12 @@ export class FlowMediaStorageRoutes extends Routes {
             req.body.limit = 50;
         }
         if (req.body.object_ids !== undefined) {
-            // Verify object id existence and throws if one exists
+            const hasObjectIds = await Promise.all(req.body.object_ids.map(async (objectId: string) => (
+                await mediaObjectRepo.getMediaObjectById(objectId) !== null
+            )));
+            if (hasObjectIds.some((exists) => exists)) {
+                throw new BadRequestHttpError('Some or all object ids already exists.');
+            }
         }
         const flow = await flowRepo.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
