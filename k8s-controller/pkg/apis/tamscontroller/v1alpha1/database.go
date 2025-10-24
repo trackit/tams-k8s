@@ -13,11 +13,12 @@ var (
 )
 
 type DynamoDBDatabaseCfg struct {
-	Type             StoreDatabaseType `json:"type"`
-	FlowTableName    string            `json:"flowTableName"`
-	ServiceTableName string            `json:"serviceTableName"`
-	Region           *string           `json:"region,omitempty"`
-	Endpoint         *string           `json:"endpoint,omitempty"`
+	Type                 StoreDatabaseType `json:"type"`
+	FlowTableName        string            `json:"flowTableName"`
+	ServiceTableName     string            `json:"serviceTableName"`
+	MediaObjectTableName string            `json:"mediaObjectTableName"`
+	Region               *string           `json:"region,omitempty"`
+	Endpoint             *string           `json:"endpoint,omitempty"`
 }
 
 type MemoryDatabaseCfg struct {
