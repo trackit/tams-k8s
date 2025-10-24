@@ -11,14 +11,14 @@ export class MemoryMediaObjectImpl implements MediaObjectsRepository {
         return this.mediaObjects.find((mo) => mo.objectId === id) ?? null;
     }
 
-    async putMediaObject(mo: MediaObject): Promise<MediaObject> {
-        const index = this.mediaObjects.findIndex((mo) => mo.objectId === mo.objectId);
+    async putMediaObject(mediaObject: MediaObject): Promise<MediaObject> {
+        const index = this.mediaObjects.findIndex((findMediaObject) => findMediaObject.objectId === mediaObject.objectId);
         if (index === -1) {
-            this.mediaObjects.push(mo);
+            this.mediaObjects.push(mediaObject);
         } else {
-            this.mediaObjects[index] = mo;
+            this.mediaObjects[index] = mediaObject;
         }
-        return mo;
+        return mediaObject;
     }
 
 }
