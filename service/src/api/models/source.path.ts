@@ -2,7 +2,7 @@ export interface PutSourcePathParams {
   sourceId: string;
 }
 
-export interface PutSourceTagsPathParams {
+export interface PutSourceTagPathParams {
   sourceId: string;
   tagName: string;
 }
@@ -11,6 +11,6 @@ export interface GetSourcePathParams {
   sourceId: string;
 }
 
-export interface GetSourceTagPathParams {
+export interface GetSourceTagsPathParams {
   sourceId: string;
 }

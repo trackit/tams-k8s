@@ -53,7 +53,7 @@ export class DDBSourcesImpl implements SourceRepository {
   private recordToSource(record: Record<string, AttributeValue>): Source {
     const data = unmarshall(record);
     return {
-      id: data.sourceId,
+      id: data.id,
       label: data.label,
       format: data.format,
       description: data.description,
@@ -154,7 +154,7 @@ export class DDBSourcesImpl implements SourceRepository {
       new GetItemCommand({
         TableName: this.config.sourceTableName,
         Key: {
-          sourceId: {
+          id: {
             S: sourceId,
           },
         },

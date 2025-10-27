@@ -1,6 +1,6 @@
 import Joi from "joi";
 import { Source, SourceCollectionItem } from "../models/source.body";
-import { FormatUrn } from "../models/commun.body";
+import { FormatUrn } from "../models/common.body";
 
 export const sourceCollectionItemValidator = Joi.object<SourceCollectionItem>({
   id: Joi.string().uuid().required(),

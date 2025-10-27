@@ -12,8 +12,8 @@ import {
   PutSourcePathParams,
   putSourcePathParamsValidator,
   listSourcesQueryParamsValidator,
-  GetSourceTagPathParams,
-  getSourceTagPathParamsValidator,
+  GetSourceTagsPathParams,
+  getSourceTagsPathParamsValidator,
 } from "@tams-k8s/api";
 import { BackendManager } from "../backend/manager";
 import { SourceAdapter } from "../repository/adapters/source.adapter";
@@ -56,7 +56,7 @@ export class SourceRoutes extends Routes {
 
     this.route.get<any, SourceTags>(
       "/:sourceId/tags",
-      validator.params(getSourceTagPathParamsValidator),
+      validator.params(getSourceTagsPathParamsValidator),
       validator.response(sourceTagsValidator.required()),
       this.getSourceTags.bind(this)
     );
@@ -134,7 +134,7 @@ export class SourceRoutes extends Routes {
   }
 
   private async getSourceTags(
-    req: ValidatedRequest<ParamsSchema<GetSourceTagPathParams>>,
+    req: ValidatedRequest<ParamsSchema<GetSourceTagsPathParams>>,
     res: Response<SourceTags>
   ) {
     const sourceRepository = this.repositories.getSourceRepository();

@@ -1,4 +1,4 @@
-import { FormatUrn } from "./commun.body";
+import { FormatUrn } from "./common.body";
 
 export interface SourceCollectionItem {
   id: string;

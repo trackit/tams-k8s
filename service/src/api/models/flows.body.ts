@@ -1,4 +1,4 @@
-import { FormatUrn } from "./commun.body";
+import { FormatUrn } from "./common.body";
 
 export enum InterlaceMode {
     PROGRESSIVE = 'progressive',

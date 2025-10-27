@@ -1,16 +1,16 @@
 import Joi from "joi";
 import {
   PutSourcePathParams,
-  PutSourceTagsPathParams,
+  PutSourceTagPathParams,
   GetSourcePathParams,
-  GetSourceTagPathParams,
+  GetSourceTagsPathParams,
 } from "../models/source.path";
 
 export const putSourcePathParamsValidator = Joi.object<PutSourcePathParams>({
     sourceId: Joi.string().uuid().required(),
 });
 
-export const putSourceTagsPathParamsValidator = Joi.object<PutSourceTagsPathParams>({
+export const putSourceTagPathParamsValidator = Joi.object<PutSourceTagPathParams>({
     sourceId: Joi.string().uuid().required(),
     tagName: Joi.string().required(),
 });
@@ -19,6 +19,6 @@ export const getSourcePathParamsValidator = Joi.object<GetSourcePathParams>({
     sourceId: Joi.string().uuid().required(),
 });
 
-export const getSourceTagPathParamsValidator = Joi.object<GetSourceTagPathParams>({
+export const getSourceTagsPathParamsValidator = Joi.object<GetSourceTagsPathParams>({
     sourceId: Joi.string().uuid().required(),
 });

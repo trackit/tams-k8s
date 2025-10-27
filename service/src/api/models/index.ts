@@ -5,4 +5,4 @@ export * from './service';
 export * from './source.body'
 export * from './source.path';
 export * from './source.query';
-export * from './commun.body';
+export * from './common.body';

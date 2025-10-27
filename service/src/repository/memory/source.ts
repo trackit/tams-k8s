@@ -4,6 +4,8 @@ import type {
   SourceRepository,
   ListSourcesResponse,
 } from "../source";
+import Joi from "joi";
+import { InvalidPageTokenError } from "../errors";
 
 export class MemorySourceImpl implements SourceRepository {
   private readonly sources: Source[];
@@ -14,6 +16,16 @@ export class MemorySourceImpl implements SourceRepository {
 
   private encodePageToken(sourceId: string) {
     return Buffer.from(sourceId, "utf8").toString("base64url");
+  }
+
+  private decodePageToken(pageToken: string) {
+    try {
+      const decoded = Buffer.from(pageToken, "base64url").toString("utf8");
+      Joi.assert(decoded, Joi.string().uuid().required());
+      return decoded;
+    } catch (e) {
+      throw new InvalidPageTokenError();
+    }
   }
 
   async listSources(
@@ -53,6 +65,15 @@ export class MemorySourceImpl implements SourceRepository {
         filteredSources = filteredSources.filter(
           (s) => !doesNotHaveTags.some((key) => s.tags && key in s.tags)
         );
+      }
+
+      if (page) {
+        const decoded = this.decodePageToken(page);
+        const index = filteredSources.findIndex(({ id }) => id === decoded);
+        if (index === -1) {
+          throw new InvalidPageTokenError();
+        }
+        filteredSources = filteredSources.slice(index + 1);
       }
 
       if (limit) {
