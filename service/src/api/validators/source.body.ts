@@ -1,6 +1,5 @@
 import Joi from "joi";
-import { Source, SourceCollectionItem } from "../models/source.body";
-import { FormatUrn } from "../models/common.body";
+import { Source, SourceCollectionItem, FormatUrn } from "@tams-k8s/api";
 
 export const sourceCollectionItemValidator = Joi.object<SourceCollectionItem>({
   id: Joi.string().uuid().required(),
@@ -11,6 +10,8 @@ export const sourceTagsValidator = Joi.object().pattern(
   Joi.string(),
   Joi.alternatives().try(Joi.string(), Joi.array().items(Joi.string()))
 );
+
+export const sourceTagValidator = Joi.string();
 
 export const sourceValidator = Joi.object<Source>({
   id: Joi.string().uuid().required(),
@@ -29,3 +30,7 @@ export const sourceValidator = Joi.object<Source>({
 });
 
 export const sourcesValidator = Joi.array().items(sourceValidator);
+
+export const sourceDescriptionValidator = Joi.string();
+
+export const sourceLabelValidator = Joi.string();
