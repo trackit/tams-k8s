@@ -6,6 +6,7 @@ export const dynamoDbDatabaseConfigValidator = Joi.object<DynamoDBConfig>({
     flowTableName: Joi.string().required(),
     serviceTableName: Joi.string().required(),
     sourceTableName: Joi.string().required(),
+    mediaObjectTableName: Joi.string().required(),
     region: Joi.string(),
     endpoint: Joi.string(),
 });

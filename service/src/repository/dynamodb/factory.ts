@@ -9,8 +9,10 @@ import {
 import type { DynamoDBConfig } from '../../configParser';
 import  { Factory } from "../factory";
 import  { FlowRepository } from "../flows";
+import { MediaObjectsRepository } from '../mediaObjects';
 import { ServiceRepository } from "../service";
 import { DDBFlowsImpl } from "./flows";
+import { DDBMediaObjectsImpl } from './mediaObjects';
 import { DDBServiceImpl } from "./service";
 import { SourceRepository } from 'repository/source';
 import { DDBSourcesImpl } from './source';
@@ -69,7 +71,20 @@ export class DDBRepositoryFactory implements Factory {
                 KeyType: "HASH",
             }],
             BillingMode: "PAY_PER_REQUEST",
-        }));
+        }));}
+    private async createMediaObjectTable() {
+        await this.client.send(new CreateTableCommand({
+            TableName: this.config.mediaObjectTableName,
+            AttributeDefinitions: [{
+                AttributeName: 'objectId',
+                AttributeType: 'S'
+            }],
+            KeySchema: [{
+                AttributeName: 'objectId',
+                KeyType: 'HASH'
+            }],
+            BillingMode: 'PAY_PER_REQUEST'
+        }))
     }
 
     async initialize() {
@@ -123,6 +138,22 @@ export class DDBRepositoryFactory implements Factory {
               throw e;
             }
         }
+
+        // ensure media object exists
+        try {
+            await this.client.send(new DescribeTableCommand({
+                TableName: this.config.mediaObjectTableName,
+            }));
+        } catch (e) {
+            if (e instanceof ResourceNotFoundException) {
+                log.info('Media object table not found, creating...', { tableName: this.config.mediaObjectTableName });
+                await this.createMediaObjectTable();
+                log.info('Media object table created', { tableName: this.config.mediaObjectTableName });
+            } else {
+                log.error('Could not verify media object table existence', { tableName: this.config.mediaObjectTableName });
+                throw e;
+            }
+        }
     }
 
     getFlowRepository(): FlowRepository {
@@ -135,5 +166,9 @@ export class DDBRepositoryFactory implements Factory {
 
     getSourceRepository(): SourceRepository {
         return new DDBSourcesImpl(this.client, this.config);
+    }
+
+    getMediaObjectRepository(): MediaObjectsRepository {
+        return new DDBMediaObjectsImpl(this.client, this.config);
     }
 }

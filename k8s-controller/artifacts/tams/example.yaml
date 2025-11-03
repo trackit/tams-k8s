@@ -5,14 +5,17 @@ metadata:
 spec:
   database:
     type: dynamodb
+    region: us-west-2
     flowTableName: 'k8s-tams-test'
     serviceTableName: 'k8s-tams-test-service'
+    mediaObjectTableName: 'k8s-tams-test-media-object'
   backends:
     - id: 4a6c17c4-977a-4e69-b5e1-c12cde6f9253
       type: s3
       default: true
       bucketName: k8s-tams-test
+      region: us-west-2
   replicas: 1
-  serviceAccountName: default
+  secretName: tams-aws-secret
   logs:
     level: info

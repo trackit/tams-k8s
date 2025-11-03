@@ -34,13 +34,15 @@ import (
 const controllerAgentName = "tams-controller"
 
 const (
-	SuccessSynced         = "Synced"
-	ErrResourceExists     = "ErrResourceExists"
-	ErrUnknownError       = "ErrUnknownError"
-	MessageResourceExists = "Resource %q already exists and is not managed by Store"
-	MessageUnknownError   = "An unknown error occurred while processing the Store: %s"
-	MessageResourceSynced = "Store synced successfully"
-	FieldManager          = controllerAgentName
+	SuccessSynced               = "Synced"
+	ErrResourceExists           = "ErrResourceExists"
+	ErrResourceDoesNotExist     = "ErrResourceDoesNotExist"
+	ErrUnknownError             = "ErrUnknownError"
+	MessageResourceExists       = "Resource %q already exists and is not managed by Store"
+	MessageResourceDoesNotExist = "Resource %s/%s does not exist"
+	MessageUnknownError         = "An unknown error occurred while processing the Store: %s"
+	MessageResourceSynced       = "Store synced successfully"
+	FieldManager                = controllerAgentName
 )
 
 type Controller struct {
@@ -53,8 +55,6 @@ type Controller struct {
 	deploymentsSynced cache.InformerSynced
 	configmapLister   corelisters.ConfigMapLister
 	configmapSynced   cache.InformerSynced
-	secretLister      corelisters.SecretLister
-	secretSynced      cache.InformerSynced
 	storesLister      listers.StoreLister
 	storesSynced      cache.InformerSynced
 
@@ -75,7 +75,6 @@ func NewController(
 	storeclientset clientset.Interface,
 	deploymentInformer appsinformers.DeploymentInformer,
 	configmapInformer coreinformers.ConfigMapInformer,
-	secretInformer coreinformers.SecretInformer,
 	storeInformer informers.StoreInformer,
 ) *Controller {
 	logger := klog.FromContext(ctx)
@@ -102,8 +101,6 @@ func NewController(
 		deploymentsSynced: deploymentInformer.Informer().HasSynced,
 		configmapLister:   configmapInformer.Lister(),
 		configmapSynced:   configmapInformer.Informer().HasSynced,
-		secretLister:      secretInformer.Lister(),
-		secretSynced:      secretInformer.Informer().HasSynced,
 		storesLister:      storeInformer.Lister(),
 		storesSynced:      storeInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewTypedRateLimitingQueue(rateLimiter),
@@ -150,18 +147,6 @@ func NewController(
 		},
 		DeleteFunc: controller.handleObject,
 	})
-	secretInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: controller.handleObject,
-		UpdateFunc: func(old, new interface{}) {
-			newDepl := new.(*corev1.Secret)
-			oldDepl := old.(*corev1.Secret)
-			if newDepl.ResourceVersion == oldDepl.ResourceVersion {
-				return
-			}
-			controller.handleObject(new)
-		},
-		DeleteFunc: controller.handleObject,
-	})
 
 	return controller
 }
@@ -181,7 +166,7 @@ func (c *Controller) Run(ctx context.Context, workers int) error {
 	// Wait for the caches to be synced before starting workers
 	logger.Info("Waiting for informer caches to sync")
 
-	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced, c.secretSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), c.deploymentsSynced, c.storesSynced, c.configmapSynced); !ok {
 		return fmt.Errorf("failed to wait for caches to sync")
 	}
 
@@ -256,12 +241,6 @@ func (c *Controller) syncHandler(ctx context.Context, objectRef cache.ObjectName
 			return nil
 		}
 
-		return err
-	}
-
-	// Synchronize secret
-	if _, err := c.syncSecret(ctx, logger, store); err != nil {
-		logger.V(2).Error(err, "Failed to sync secret")
 		return err
 	}
 

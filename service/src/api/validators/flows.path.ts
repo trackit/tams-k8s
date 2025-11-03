@@ -15,6 +15,7 @@ import {
     GetFlowReadOnlyPathParams,
     GetFlowTagPathParams,
     GetFlowTagsPathParams,
+    PostFlowMediaStoragePathParams,
     PutFlowAvgBitRatePathParams,
     PutFlowDescriptionPathParams,
     PutFlowFlowCollectionPathParams,
@@ -126,3 +127,8 @@ export const putFlowAvgBitRatePathParamsValidator = Joi.object<PutFlowAvgBitRate
 export const deleteFlowAvgBitRatePathParamsValidator = Joi.object<DeleteFlowAvgBitRatePathParams>({
     flowId: Joi.string().uuid().required(),
 });
+
+// Media storage
+export const postFlowMediaStoragePathParamsValidator = Joi.object<PostFlowMediaStoragePathParams>({
+    flowId: Joi.string().uuid().required(),
+})

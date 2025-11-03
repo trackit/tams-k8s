@@ -1,11 +1,11 @@
-import type { DBConfig } from '../configParser';
+import type { DBConfig } from "../configParser";
 import { DDBRepositoryFactory } from "./dynamodb/factory";
 import { type Factory } from "./factory";
 import { FlowRepository } from "./flows";
+import { MediaObjectsRepository } from "./mediaObjects";
 import { MemoryRepositoryFactory } from "./memory/factory";
 import { ServiceRepository } from "./service";
 import { SourceRepository } from "./source";
-
 
 export class RepositoriesBuilder implements Factory {
   private readonly config: DBConfig;
@@ -42,5 +42,9 @@ export class RepositoriesBuilder implements Factory {
 
   getServiceRepository(): ServiceRepository {
     return this.factory.getServiceRepository();
+  }
+
+  getMediaObjectRepository(): MediaObjectsRepository {
+    return this.factory.getMediaObjectRepository();
   }
 }

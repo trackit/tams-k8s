@@ -175,3 +175,23 @@ export interface MultiFlow extends CommonFlow {
 export type Flow = VideoFlow | AudioFlow | ImageFlow | DataFlow | MultiFlow;
 
 export type FlowTags = Record<string, string>;
+
+export interface PostFlowMediaStorageRequest {
+    storage_id?: string;
+    limit?: number;
+    object_ids?: string[];
+}
+
+export interface MediaBucketObjectStoreItem {
+    object_id: string;
+    put_url: {
+        url: string;
+        body?: string;
+        'content-type'?: string;
+        headers?: Record<string, string>;
+    };
+}
+
+export interface MediaBucketObjectStore {
+    media_objects: MediaBucketObjectStoreItem[];
+}

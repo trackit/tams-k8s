@@ -29,6 +29,8 @@ spec:
                       type: string
                     serviceTableName:
                       type: string
+                    mediaObjectTableName:
+                      type: string
                     region:
                       type: string
                     endpoint:
@@ -40,6 +42,7 @@ spec:
                       required:
                         - flowTableName
                         - serviceTableName
+                        - mediaObjectTableName
                     - properties:
                         type:
                           enum: [memory]
@@ -77,15 +80,8 @@ spec:
 
                 serviceAccountName:
                   type: string
-
-                aws:
-                  type: object
-                  required: [accessKeyId, secretAccessKey]
-                  properties:
-                    accessKeyId:
-                      type: string
-                    secretAccessKey:
-                      type: string
+                secretName:
+                  type: string
 
                 server:
                   type: object

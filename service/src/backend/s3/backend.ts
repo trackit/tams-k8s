@@ -1,7 +1,15 @@
-import { CreateBucketCommand, HeadBucketCommand, NotFound, S3Client } from "@aws-sdk/client-s3";
+import {
+    CreateBucketCommand,
+    GetObjectCommand,
+    HeadBucketCommand,
+    NotFound,
+    PutObjectCommand,
+    S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { log } from "@tams-k8s/logger";
 import { S3BackendConfig } from "../../configParser";
-import { Backend, BucketInformation } from "../backend";
+import { Backend, BucketInformation, GetPresignedUrlMode, GetPresignedUrlOptions } from "../backend";
 
 export class S3BackendImpl implements Backend {
     private readonly client: S3Client;
@@ -41,6 +49,33 @@ export class S3BackendImpl implements Backend {
 
     getId() {
         return this.config.id;
+    }
+
+    async getPresignedUrl(mode: GetPresignedUrlMode, key: string, opts?: GetPresignedUrlOptions): Promise<string> {
+        if (mode === 'GET') {
+            return getSignedUrl(
+                this.client,
+                new GetObjectCommand({
+                    Bucket: this.config.bucketName,
+                    Key: key,
+                }),
+                {
+                    expiresIn: opts?.expiresIn
+                },
+            );
+        }
+        return getSignedUrl(
+            this.client,
+            new PutObjectCommand({
+                Bucket: this.config.bucketName,
+                Key: key,
+                ContentType: opts?.contentType,
+            }),
+            {
+                signableHeaders: new Set(["content-type"]),
+                expiresIn: opts?.expiresIn,
+            }
+        )
     }
 
     isDefault(): boolean {
