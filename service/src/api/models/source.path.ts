@@ -1,3 +1,7 @@
+export interface HeadSourcePathParams {
+  sourceId: string;
+}
+
 export interface GetSourcePathParams {
   sourceId: string;
 }

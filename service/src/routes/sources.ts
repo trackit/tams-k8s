@@ -4,10 +4,12 @@ import {
   Source,
   sourceValidator,
   sourcesValidator,
+  HeadSourcePathParams,
   GetSourcePathParams,
   getSourcePathParamsValidator,
   GetSourcesQueryParamsRequest,
   listSourcesQueryParamsValidator,
+  HeadSourcesQueryParamsRequest,
 } from "@tams-k8s/api";
 import { SourcesDescription } from "./sources.description";
 import { SourcesLabel } from "./sources.label";
@@ -70,7 +72,7 @@ export class SourcesRoutes extends Routes {
   }
 
   private async headListSources(
-    req: ValidatedRequest<QSSchema<GetSourcesQueryParamsRequest>>,
+    req: ValidatedRequest<QSSchema<HeadSourcesQueryParamsRequest>>,
     res: Response,
   ) {
     const sourceRepo = this.repositories.getSourceRepository();
@@ -161,7 +163,7 @@ export class SourcesRoutes extends Routes {
   }
 
   private async headGetSource(
-    req: ValidatedRequest<ParamsSchema<GetSourcePathParams>>,
+    req: ValidatedRequest<ParamsSchema<HeadSourcePathParams>>,
     res: Response,
   ) {
     const sourceRepository = this.repositories.getSourceRepository();
