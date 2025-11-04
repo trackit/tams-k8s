@@ -15,7 +15,7 @@ export class RootRoutes extends Routes {
             "service",
             "flows",
             // "sources",
-            // "flow-delete-requests"
+            "flow-delete-requests"
         ]);
     }
 }

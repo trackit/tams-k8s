@@ -11,9 +11,11 @@ import  { Factory } from "../factory";
 import  { FlowRepository } from "../flows";
 import { MediaObjectsRepository } from '../mediaObjects';
 import { ServiceRepository } from "../service";
+import { FlowDeleteRequestsRepository } from '../flowDeleteRequests';
 import { DDBFlowsImpl } from "./flows";
 import { DDBMediaObjectsImpl } from './mediaObjects';
 import { DDBServiceImpl } from "./service";
+import { DDBFlowDeleteRequestsImpl } from './flowDeleteRequests';
 
 export class DDBRepositoryFactory implements Factory {
     private readonly config: DynamoDBConfig;
@@ -72,6 +74,21 @@ export class DDBRepositoryFactory implements Factory {
         }))
     }
 
+    private async createFlowDeleteRequestsTable() {
+        await this.client.send(new CreateTableCommand({
+            TableName: this.config.flowDeleteRequestsTableName,
+            AttributeDefinitions: [{
+                AttributeName: 'flowDeleteRequestId',
+                AttributeType: 'S'
+            }],
+            KeySchema: [{
+                AttributeName: 'flowDeleteRequestId',
+                KeyType: 'HASH'
+            }],
+            BillingMode: 'PAY_PER_REQUEST'
+        }))
+    }
+
     async initialize() {
         // ensure service table exists
         try {
@@ -118,6 +135,28 @@ export class DDBRepositoryFactory implements Factory {
                 throw e;
             }
         }
+        
+        // ensure flow-delete-requests exists
+        try {
+            await this.client.send(new DescribeTableCommand({
+                TableName: this.config.flowDeleteRequestsTableName,
+            }));
+        } catch (e) {
+            if (e instanceof ResourceNotFoundException) {
+                log.info("Flow-delete-requests table not found, creating...", {
+                  tableName: this.config.flowDeleteRequestsTableName,
+                });
+                await this.createFlowDeleteRequestsTable();
+                log.info("Flow-delete-requests table created", {
+                  tableName: this.config.flowDeleteRequestsTableName,
+                });
+            } else {
+                log.error("Could not verify flow-delete-requests table existence", {
+                  tableName: this.config.flowDeleteRequestsTableName,
+                });
+                throw e;
+            }
+        }
     }
 
     getFlowRepository(): FlowRepository {
@@ -130,5 +169,9 @@ export class DDBRepositoryFactory implements Factory {
 
     getMediaObjectRepository(): MediaObjectsRepository {
         return new DDBMediaObjectsImpl(this.client, this.config);
+    }
+
+    getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository {
+        return new DDBFlowDeleteRequestsImpl(this.client, this.config);
     }
 }

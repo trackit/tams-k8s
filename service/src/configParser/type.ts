@@ -4,6 +4,7 @@ export interface DynamoDBConfig {
     flowTableName: string;
     serviceTableName: string;
     mediaObjectTableName: string;
+    flowDeleteRequestsTableName: string;
     region?: string;
     endpoint?: string;
 }

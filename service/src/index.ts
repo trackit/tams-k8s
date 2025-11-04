@@ -4,7 +4,7 @@ import { BackendManager } from './backend/manager';
 import { ConfigReader } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
-import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
+import { FlowsRoutes, RootRoutes, ServiceRoutes, FlowDeleteRequestsRoutes } from './routes';
 
 const config = new ConfigReader().getCachedConfig();
 
@@ -31,6 +31,9 @@ const main = async () => {
 
     const flowRoutes = new FlowsRoutes(repositories, backends);
     app.use('/flows', flowRoutes.getRoutes());
+
+    const flowDeleteRequestsRoutes = new FlowDeleteRequestsRoutes(repositories, backends);
+    app.use('/flow-delete-requests', flowDeleteRequestsRoutes.getRoutes());
 
     app.use(validationHelper);
     app.use(errorHandler);
