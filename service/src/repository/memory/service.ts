@@ -3,8 +3,8 @@ import { Service, ServiceRepository, ServiceUpdate } from "../service";
 export class MemoryServiceImpl implements ServiceRepository {
     private service: Service;
 
-    constructor() {
-        this.service = {
+    constructor(initialService?: Service) {
+        this.service = initialService ?? {
             name: '',
             description: ''
         }

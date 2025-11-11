@@ -11,6 +11,7 @@ import {
   listSourcesQueryParamsValidator,
   HeadSourcesQueryParamsRequest,
 } from "@tams-k8s/api";
+import { Factory } from '../repository/factory';
 import { SourcesDescription } from "./sources.description";
 import { SourcesLabel } from "./sources.label";
 import { SourcesTags } from "./sources.tags";
@@ -28,7 +29,7 @@ import {
 import { InvalidPageTokenError } from "repository/errors";
 
 export class SourcesRoutes extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+  constructor(repositories: Factory, backends: BackendManager) {
     super(repositories, backends);
 
     const sourcesDescriptionRoutes = new SourcesDescription(repositories, backends);

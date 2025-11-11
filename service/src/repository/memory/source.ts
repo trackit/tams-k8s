@@ -10,8 +10,8 @@ import { InvalidPageTokenError } from "../errors";
 export class MemorySourceImpl implements SourceRepository {
   private readonly sources: Source[];
 
-  constructor() {
-    this.sources = [];
+  constructor(initialSources?: Source[]) {
+    this.sources = initialSources ?? [];
   }
 
   private encodePageToken(sourceId: string) {

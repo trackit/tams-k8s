@@ -1,2 +1,2 @@
 export * from './partial';
-export * from './tests';
+export * from './test/tests';

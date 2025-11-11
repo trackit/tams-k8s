@@ -6,8 +6,8 @@ import type { Flow, FlowRepository, ListFlowsFilters, ListFlowsResponse } from '
 export class MemoryFlowsImpl implements FlowRepository {
     private readonly flows: Flow[];
 
-    constructor() {
-        this.flows = [];
+    constructor(initialFlows?: Flow[]) {
+        this.flows = initialFlows ?? [];
     }
 
     private encodePageToken(flowId: string) {

@@ -12,13 +12,14 @@ import { v4 as uuid } from 'uuid';
 import { Backend } from '../backend/backend';
 import { BackendManager } from '../backend/manager';
 import { RepositoriesBuilder } from '../repository/builder';
+import { Factory } from '../repository/factory';
 import { Routes } from './generic';
 import { BadRequestHttpError, ForbiddenHttpError, NotFoundHttpError, ParamsBodySchema, validator } from './middlewares';
 
 const PRE_SIGNED_URL_EXPIRY = 3600;
 
 export class FlowMediaStorageRoutes extends Routes {
-    constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+    constructor(repositories: Factory, backends: BackendManager) {
         super(repositories, backends);
 
         this.route.post<any, MediaBucketObjectStore>(

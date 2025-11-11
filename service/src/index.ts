@@ -3,13 +3,14 @@ import { log } from '@tams-k8s/logger';
 import { BackendManager } from './backend/manager';
 import { ConfigReader } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
+import { Factory } from './repository/factory';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
 import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
 import { SourcesRoutes } from 'routes/sources';
 
 const config = new ConfigReader().getCachedConfig();
 
-export const setupExpressApp = (repositories: RepositoriesBuilder, backends: BackendManager) => {
+export const setupExpressApp = (repositories: Factory, backends: BackendManager) => {
     const app = express();
     app.disable('x-powered-by');
     app.set('trust proxy', true);
