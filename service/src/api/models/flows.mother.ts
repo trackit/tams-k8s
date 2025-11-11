@@ -22,6 +22,16 @@ export class ApiFlowMother {
         return this;
     }
 
+    withCodec(codec: string) {
+        this.flow.codec = codec;
+        return this;
+    }
+
+    withReadOnly(readOnly: boolean) {
+        this.flow.read_only = readOnly;
+        return this;
+    }
+
     build(): Flow {
         return this.flow;
     }

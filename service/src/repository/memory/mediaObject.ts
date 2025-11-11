@@ -7,6 +7,10 @@ export class MemoryMediaObjectImpl implements MediaObjectsRepository {
         this.mediaObjects = initialMediaObjects ?? [];
     }
 
+    public getInternal(): MediaObject[] {
+        return this.mediaObjects;
+    }
+
     async getMediaObjectById(id: string): Promise<MediaObject | null> {
         return this.mediaObjects.find((mo) => mo.objectId === id) ?? null;
     }

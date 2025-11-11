@@ -10,6 +10,10 @@ export class MemoryServiceImpl implements ServiceRepository {
         }
     }
 
+    getInternal(): Service {
+        return this.service;
+    }
+
     getService(): Promise<Service> {
         return Promise.resolve(this.service);
     }

@@ -24,6 +24,10 @@ export class MemoryFlowsImpl implements FlowRepository {
         }
     }
 
+    public getInternal(): Flow[] {
+        return this.flows;
+    }
+
     // TODO(arthur): implement timerange filtering
     async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
         let filteredFlows = this.flows;

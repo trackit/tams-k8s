@@ -5,8 +5,7 @@ import { setupExpressApp } from '../index';
 
 describe('root routes tests', () => {
     it('returns the list of services', async () => {
-        const [repositories, backend] = setupTest();
-        const app = setupExpressApp(repositories, backend);
+        const { app } = setupTest();
 
         const response = await request(app).get('/');
 

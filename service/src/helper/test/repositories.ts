@@ -14,6 +14,11 @@ export class TestRepositories implements Factory {
     private service: Service | undefined;
     private mediaObjects: MediaObject[] | undefined;
 
+    private flowRepository: MemoryFlowsImpl | undefined;
+    private mediaObjectRepository: MemoryMediaObjectImpl | undefined;
+    private serviceRepository: MemoryServiceImpl | undefined;
+    private sourceRepository: MemorySourceImpl | undefined;
+
     async initialize(): Promise<void> {
         return;
     }
@@ -38,19 +43,38 @@ export class TestRepositories implements Factory {
         return this;
     }
 
+    getInternalFlows(): Flow[] {
+        return this.flowRepository?.getInternal() ?? [];
+    }
+
+    getInternalSources(): Source[] {
+        return this.sourceRepository?.getInternal() ?? [];
+    }
+
+    getInternalService(): Service {
+        return this.serviceRepository?.getInternal() ?? {
+            name: '',
+            description: ''
+        };
+    }
+
+    getMediaObjects(): MediaObject[] {
+        return this.mediaObjectRepository?.getInternal() ?? [];
+    }
+
     getFlowRepository(): FlowRepository {
-        return new MemoryFlowsImpl(this.flows);
+        return this.flowRepository ?? (this.flowRepository = new MemoryFlowsImpl(this.flows));
     }
 
     getMediaObjectRepository(): MediaObjectsRepository {
-        return new MemoryMediaObjectImpl(this.mediaObjects);
+        return this.mediaObjectRepository ?? (this.mediaObjectRepository ?? new MemoryMediaObjectImpl(this.mediaObjects));
     }
 
     getServiceRepository(): ServiceRepository {
-        return new MemoryServiceImpl(this.service);
+        return this.serviceRepository ?? (this.serviceRepository = new MemoryServiceImpl(this.service));
     }
 
     getSourceRepository(): SourceRepository {
-        return new MemorySourceImpl(this.sources);
+        return this.sourceRepository ?? (this.sourceRepository = new MemorySourceImpl(this.sources));
     }
 }

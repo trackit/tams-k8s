@@ -1,3 +1,4 @@
+import { MediaObject } from '../mediaObjects';
 import type {
   ListSourcesFilters,
   Source,
@@ -26,6 +27,10 @@ export class MemorySourceImpl implements SourceRepository {
     } catch (e) {
       throw new InvalidPageTokenError();
     }
+  }
+
+  getInternal(): Source[] {
+      return this.sources;
   }
 
   async listSources(

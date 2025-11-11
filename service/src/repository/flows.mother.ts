@@ -2,7 +2,7 @@ import { FormatUrn } from '@tams-k8s/api';
 import { Flow } from './flows';
 
 export class RepoFlowMother {
-    private flow: Flow;
+    private readonly flow: Flow;
 
     static video() {
         return new RepoFlowMother({
@@ -19,6 +19,16 @@ export class RepoFlowMother {
 
     withId(id: string) {
         this.flow.flowId = id;
+        return this;
+    }
+
+    withCodec(codec: string) {
+        this.flow.codec = codec;
+        return this;
+    }
+
+    withReadOnly(readOnly: boolean) {
+        this.flow.readOnly = readOnly;
         return this;
     }
 

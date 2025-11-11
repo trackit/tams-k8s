@@ -1,8 +1,21 @@
+import { Express } from 'express';
 import { BackendManager } from '../../backend/manager';
+import { setupExpressApp } from '../../index';
 import { TestRepositories } from './repositories';
 
-export const setupTest = (): [TestRepositories, BackendManager] => {
+interface TestData {
+    repositories: TestRepositories,
+    backend: BackendManager,
+    app: Express,
+}
+
+export const setupTest = (): TestData => {
     const repositories = new TestRepositories();
     const backend = new BackendManager([{ id: 'test', bucketName: 'test', type: 's3', default: true }]);
-    return [repositories, backend];
+    const app = setupExpressApp(repositories, backend);
+    return {
+        repositories,
+        backend,
+        app
+    };
 }
