@@ -35,21 +35,11 @@ export class SourcesRoutes extends Routes {
     const sourcesLabelRoutes = new SourcesLabel(repositories, backends);
     const sourcesTagsRoutes = new SourcesTags(repositories, backends);
 
-    this.route.head<any, void>(
-      "/",
-      validator.query(listSourcesQueryParamsValidator),
-      this.headListSources.bind(this) as any,
-    );
     this.route.get(
       "/",
       validator.query(listSourcesQueryParamsValidator),
       validator.response(sourcesValidator),
       this.listSources.bind(this),
-    );
-    this.route.head<any, void>(
-      "/:sourceId",
-      validator.params(getSourcePathParamsValidator),
-      this.headGetSource.bind(this) as any,
     );
     this.route.get<any, Source>(
       "/:sourceId",
@@ -69,53 +59,6 @@ export class SourcesRoutes extends Routes {
     const url = new URL(`${req.protocol}://${req.host}${req.originalUrl}`);
     url.searchParams.set("page", nextPageToken);
     return url.toString();
-  }
-
-  private async headListSources(
-    req: ValidatedRequest<QSSchema<HeadSourcesQueryParamsRequest>>,
-    res: Response,
-  ) {
-    const sourceRepo = this.repositories.getSourceRepository();
-    const tags: Record<string, string> = {};
-    const haveTags: string[] = [];
-    const doesNotHaveTags: string[] = [];
-
-    Object.entries(req.query).forEach(([key, value]) => {
-      if (key.startsWith("tag_exists.")) {
-        if (value) {
-          haveTags.push(key.replace("tag_exists.", ""));
-        } else {
-          doesNotHaveTags.push(key.replace("tag_exists.", ""));
-        }
-      }
-      if (key.startsWith("tag.") && typeof value === "string") {
-        tags[key.replace("tag.", "")] = value;
-      }
-    });
-    try {
-      const list = await sourceRepo.listSources({
-        label: req.query.label,
-        format: req.query.format,
-        page: req.query.page,
-        limit: req.query.limit,
-        tags,
-        haveTags,
-        doesNotHaveTags,
-      });
-
-      if (list.limit !== undefined) res.setHeader("X-Paging-Limit", list.limit.toString());
-      if (list.nextPageToken !== undefined) {
-        res.setHeader("X-Paging-NextKey", list.nextPageToken);
-        res.setHeader("Link", `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`);
-      }
-
-      res.sendStatus(200);
-    } catch (e) {
-      if (e instanceof InvalidPageTokenError) {
-        throw new BadRequestHttpError(e.message);
-      }
-      throw e;
-    }
   }
 
   private async listSources(
@@ -160,16 +103,6 @@ export class SourcesRoutes extends Routes {
       }
       throw e;
     }
-  }
-
-  private async headGetSource(
-    req: ValidatedRequest<ParamsSchema<HeadSourcePathParams>>,
-    res: Response,
-  ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null) throw new NotFoundHttpError("Source could not be found");
-    res.sendStatus(200);
   }
 
   private async getSource(

@@ -66,7 +66,7 @@ export class DDBSourcesImpl implements SourceRepository {
       sourceCollection: data.sourceCollection?.map(
         this.sourceCollectionItemRecordToSourceCollectionItem.bind(this)
       ),
-    } as Source;
+    };
   }
 
   private recordsToSources(

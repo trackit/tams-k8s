@@ -18,11 +18,6 @@ export class SourcesLabel extends Routes {
   constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
     super(repositories, backends);
 
-    this.route.head<any, void>(
-      "/:sourceId/label",
-      validator.params(getSourceLabelPathParamsValidator),
-      this.headSourceLabel.bind(this),
-    );
     this.route.get<any, string>(
       "/:sourceId/label",
       validator.params(getSourceLabelPathParamsValidator),
@@ -42,19 +37,7 @@ export class SourcesLabel extends Routes {
     );
   }
 
-  async headSourceLabel(
-    req: ValidatedRequest<ParamsSchema<GetSourceLabelPathParams>>,
-    res: Response<void>,
-  ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null)
-      throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
-    if (!source.label) throw new NotFoundHttpError("Label could not be found");
-    res.sendStatus(200);
-  }
-
-  async getSourceLabel(
+  private async getSourceLabel(
     req: ValidatedRequest<ParamsSchema<GetSourceLabelPathParams>>,
     res: Response<string>,
   ) {
@@ -65,7 +48,7 @@ export class SourcesLabel extends Routes {
     res.json(source?.label);
   }
 
-  async putSourceLabel(
+  private async putSourceLabel(
     req: ValidatedRequest<ParamsBodySchema<PutSourceLabelPathParams, string>>,
     res: Response<void>,
   ) {
@@ -78,7 +61,7 @@ export class SourcesLabel extends Routes {
     res.sendStatus(204);
   }
 
-  async deleteSourceLabel(
+  private async deleteSourceLabel(
     req: ValidatedRequest<ParamsSchema<DeleteSourceLabelPathParams>>,
     res: Response<void>,
   ) {

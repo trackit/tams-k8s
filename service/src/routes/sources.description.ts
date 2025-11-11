@@ -20,11 +20,6 @@ export class SourcesDescription extends Routes {
   constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
     super(repositories, backends);
 
-    this.route.head<any, void>(
-      "/:sourceId/description",
-      validator.params(headSourceDescriptionPathParamsValidator),
-      this.headSourceDescription.bind(this),
-    );
     this.route.get<any, string>(
       "/:sourceId/description",
       validator.params(getSourceDescriptionPathParamsValidator),
@@ -44,18 +39,7 @@ export class SourcesDescription extends Routes {
     );
   }
 
-  async headSourceDescription(
-    req: ValidatedRequest<ParamsSchema<HeadSourceDescriptionPathParams>>,
-    res: Response<void>,
-  ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null)
-      throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
-    res.sendStatus(200);
-  }
-
-  async getSourceDescription(
+  private async getSourceDescription(
     req: ValidatedRequest<ParamsSchema<GetSourceDescriptionPathParams>>,
     res: Response<string>,
   ) {
@@ -66,7 +50,7 @@ export class SourcesDescription extends Routes {
     res.json(source?.description);
   }
 
-  async putSourceDescription(
+  private async putSourceDescription(
     req: ValidatedRequest<ParamsBodySchema<PutSourceDescriptionPathParams, string>>,
     res: Response<void>,
   ) {
@@ -79,7 +63,7 @@ export class SourcesDescription extends Routes {
     res.sendStatus(204);
   }
 
-  async deleteSourceDescription(
+  private async deleteSourceDescription(
     req: ValidatedRequest<ParamsSchema<DeleteSourceDescriptionPathParams>>,
     res: Response<void>,
   ) {

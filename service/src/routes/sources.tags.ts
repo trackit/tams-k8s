@@ -22,21 +22,11 @@ export class SourcesTags extends Routes {
   constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
     super(repositories, backends);
 
-    this.route.head<any, void>(
-      "/:sourceId/tags",
-      validator.params(getSourceTagsPathParamsValidator),
-      this.headSourceTags.bind(this),
-    );
     this.route.get<any, SourceTags>(
       "/:sourceId/tags",
       validator.params(getSourceTagsPathParamsValidator),
       validator.response(sourceTagsValidator.required()),
       this.getSourceTags.bind(this),
-    );
-    this.route.head<any, void>(
-      "/:sourceId/tags/:name",
-      validator.params(getSourceTagPathParamsValidator),
-      this.headSourceTag.bind(this),
     );
     this.route.get<any, string | string[]>(
       "/:sourceId/tags/:name",
@@ -57,18 +47,6 @@ export class SourcesTags extends Routes {
     );
   }
 
-  private async headSourceTags(
-    req: ValidatedRequest<ParamsSchema<GetSourceTagsPathParams>>,
-    res: Response<void>,
-  ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null) {
-      throw new NotFoundHttpError("Source could not be found");
-    }
-    res.sendStatus(200);
-  }
-
   private async getSourceTags(
     req: ValidatedRequest<ParamsSchema<GetSourceTagsPathParams>>,
     res: Response<SourceTags>,
@@ -79,19 +57,6 @@ export class SourcesTags extends Routes {
       throw new NotFoundHttpError("Source could not be found");
     }
     res.json(source.tags || {});
-  }
-
-  private async headSourceTag(
-    req: ValidatedRequest<ParamsSchema<GetSourceTagPathParams>>,
-    res: Response<void>,
-  ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null)
-      throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
-    if (source.tags?.[req.params.name] === undefined)
-      throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
-    res.sendStatus(200);
   }
 
   private async getSourceTag(
