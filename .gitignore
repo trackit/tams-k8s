@@ -4,3 +4,6 @@ dist
 .idea
 k8s-controller/k8s-controller
 k8s-controller/vendor
+
+secret.yaml
+.prettierrc

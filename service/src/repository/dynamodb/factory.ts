@@ -14,6 +14,8 @@ import { ServiceRepository } from "../service";
 import { DDBFlowsImpl } from "./flows";
 import { DDBMediaObjectsImpl } from './mediaObjects';
 import { DDBServiceImpl } from "./service";
+import { SourceRepository } from 'repository/source';
+import { DDBSourcesImpl } from './source';
 
 export class DDBRepositoryFactory implements Factory {
     private readonly config: DynamoDBConfig;
@@ -57,6 +59,19 @@ export class DDBRepositoryFactory implements Factory {
         }))
     }
 
+    private async createSourceTable() {
+        await this.client.send(new CreateTableCommand({
+            TableName: this.config.sourceTableName,
+            AttributeDefinitions: [{
+                AttributeName: "id",
+                AttributeType: "S",
+            }],
+            KeySchema: [{
+                AttributeName: "id",
+                KeyType: "HASH",
+            }],
+            BillingMode: "PAY_PER_REQUEST",
+        }));}
     private async createMediaObjectTable() {
         await this.client.send(new CreateTableCommand({
             TableName: this.config.mediaObjectTableName,
@@ -102,6 +117,27 @@ export class DDBRepositoryFactory implements Factory {
                 throw e;
             }
         }
+        // Ensure source table exists
+        try {
+            await this.client.send(new DescribeTableCommand({
+                TableName: this.config.sourceTableName,
+            }));
+        } catch (e) {
+            if (e instanceof ResourceNotFoundException) {
+              log.info("Source table not found, creating...", {
+                tableName: this.config.sourceTableName,
+              });
+              await this.createSourceTable();
+              log.info("Source table created", {
+                tableName: this.config.sourceTableName,
+              });
+            } else {
+              log.error(
+                "Could not verify source table existence",
+                { tableName: this.config.sourceTableName }, e);
+              throw e;
+            }
+        }
 
         // ensure media object exists
         try {
@@ -126,6 +162,10 @@ export class DDBRepositoryFactory implements Factory {
 
     getServiceRepository(): ServiceRepository {
         return new DDBServiceImpl(this.client, this.config);
+    }
+
+    getSourceRepository(): SourceRepository {
+        return new DDBSourcesImpl(this.client, this.config);
     }
 
     getMediaObjectRepository(): MediaObjectsRepository {
