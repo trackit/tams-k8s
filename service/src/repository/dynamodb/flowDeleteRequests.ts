@@ -6,9 +6,9 @@ import {
   ScanCommand,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import Joi from "joi";
 import { DynamoDBConfig } from "../../configParser";
-import { FlowDeleteRequest, FlowDeleteRequestsRepository } from "../flowDeleteRequests";
+import { FlowDeleteRequestsRepository } from "../flowDeleteRequests";
+import { ErrorMetadata, FlowDeleteRequest } from "../../api/";
 
 export class DDBFlowDeleteRequestsImpl implements FlowDeleteRequestsRepository {
   private readonly client: DynamoDBClient;
@@ -19,31 +19,59 @@ export class DDBFlowDeleteRequestsImpl implements FlowDeleteRequestsRepository {
     this.config = config;
   }
 
-  private flowDeleteRequestToRecord(request: FlowDeleteRequest): Record<string, AttributeValue> {
-    return marshall({
-      ...request,
-      created: request.created?.toString(),
-      updated: request.updated?.toString(),
-    });
+  private ErrorMetadataRecordToRequest(data: Record<string, any>): ErrorMetadata {
+    return {
+      type: data.type,
+      summary: data.summary,
+      traceback: data.traceback,
+      time: data.time,
+    };
   }
 
   private recordToFlowDeleteRequest(record: Record<string, AttributeValue>): FlowDeleteRequest {
-    const flowDeleteRequest = unmarshall(record);
+    const data = unmarshall(record);
     return {
-      id: flowDeleteRequest.id,
-      flowId: flowDeleteRequest.flow_id,
-      timerange: flowDeleteRequest.timerange,
-      status: flowDeleteRequest.status,
-      progress: flowDeleteRequest.progress,
-      created: flowDeleteRequest.created,
-      updated: flowDeleteRequest.updated,
-      errorMessage: flowDeleteRequest.error_message,
-      metadata: flowDeleteRequest.metadata,
+      id: data.id,
+      flowId: data.flowId,
+      timerangeToDelete: data.timerangeToDelete,
+      timerangeRemaining: data.timerangeRemaining,
+      deleteFlow: data.deleteFlow,
+      progress: data.progress,
+      created: data.created,
+      createdBy: data.createdBy,
+      updated: data.updated,
+      expiry: data.expiry,
+      status: data.status,
+      error: data.error ? this.ErrorMetadataRecordToRequest(data.error) : undefined,
     };
   }
 
   private recordToFlowDeleteRequests(records: Record<string, AttributeValue>[]) {
     return records.map(record => this.recordToFlowDeleteRequest(record));
+  }
+
+  private ErrorMetadataToRecord(error: ErrorMetadata): Record<string, AttributeValue> {
+    return marshall(
+      {
+        ...error,
+        traceback: error.traceback ?? [],
+        time: error.time?.toString(),
+      },
+      { removeUndefinedValues: true },
+    );
+  }
+
+  private flowDeleteRequestToRecord(request: FlowDeleteRequest): Record<string, AttributeValue> {
+    return marshall(
+      {
+        ...request,
+        created: request.created?.toString(),
+        updated: request.updated?.toString(),
+        expiry: request.expiry?.toString(),
+        error: request.error ? this.ErrorMetadataToRecord(request.error) : undefined,
+      },
+      { removeUndefinedValues: true },
+    );
   }
 
   async listFlowDeleteRequest(): Promise<FlowDeleteRequest[]> {
@@ -68,5 +96,15 @@ export class DDBFlowDeleteRequestsImpl implements FlowDeleteRequestsRepository {
     );
     if (!result.Item) return null;
     return this.recordToFlowDeleteRequest(result.Item);
+  }
+
+  async saveFlowDeleteRequest(flowDeleteRequest: FlowDeleteRequest): Promise<void> {
+    await this.client.send(
+      new PutItemCommand({
+        TableName: this.config.flowDeleteRequestsTableName,
+        ReturnValues: "NONE",
+        Item: this.flowDeleteRequestToRecord(flowDeleteRequest),
+      }),
+    );
   }
 }

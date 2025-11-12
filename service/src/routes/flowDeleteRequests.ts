@@ -46,7 +46,7 @@ export class FlowDeleteRequestsRoutes extends Routes {
     res.sendStatus(200);
   }
 
-  private async listFlowDeleteRequests(res: Response<FlowDeleteRequest[]>) {
+  private async listFlowDeleteRequests(_: any, res: Response<FlowDeleteRequest[]>) {
     const repo = this.repositories.getFlowDeleteRequestsRepository();
     try {
       const requests = await repo.listFlowDeleteRequest();

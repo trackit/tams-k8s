@@ -28,7 +28,11 @@ export interface S3BackendConfig extends CommonBackendConfig {
     endpoint?: string;
 }
 
-export type BackendConfig = S3BackendConfig;
+export interface MemoryBackendConfig extends CommonBackendConfig {
+    type: 'memory';
+}
+
+export type BackendConfig = S3BackendConfig | MemoryBackendConfig;
 
 // Log config
 export interface LogConfig {

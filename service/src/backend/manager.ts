@@ -24,6 +24,12 @@ export class BackendManager {
                         this.backendDefault = instance;
                     }
                     break;
+                case 'memory':
+                    const instanceMemory = {}
+                    if (config.default) {
+                      this.backendDefault = instanceMemory as Backend;
+                    }
+                    break;
             }
         }
         if (!this.backendDefault) {

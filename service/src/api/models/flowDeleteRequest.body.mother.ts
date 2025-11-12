@@ -1,18 +1,26 @@
 import { FlowDeleteRequestStatus, FlowDeleteRequest } from "@tams-k8s/api";
 
-class FlowDeleteRequestMother {
+export class FlowDeleteRequestMother {
   private readonly flowDeleteRequest: FlowDeleteRequest;
 
-  static pending(): FlowDeleteRequestMother {
+  static created(): FlowDeleteRequestMother {
     return new FlowDeleteRequestMother({
-      id: '1',
-      timerange: '0:0_',
-      status: FlowDeleteRequestStatus.PENDING
+      id: "00000000-0000-0000-0000-000000000000",
+      flowId: "00000000-0000-0000-0000-000000000000",
+      timerangeToDelete: "0:0_",
+      deleteFlow: false,
+      status: FlowDeleteRequestStatus.CREATED,
     });
   }
 
-  withId(flowId: string) {
-    this.flowDeleteRequest.flow_id = flowId;
+  withId(id: string) {
+    this.flowDeleteRequest.id = id;
+
+    return this;
+  }
+
+  withFlowId(flowId: string) {
+    this.flowDeleteRequest.flowId = flowId;
 
     return this;
   }
@@ -23,8 +31,20 @@ class FlowDeleteRequestMother {
     return this;
   }
 
+  withTimerangeToDelete(timerange: string) {
+    this.flowDeleteRequest.timerangeToDelete = timerange;
+
+    return this;
+  }
+
+  withDeleteFlow(deleteFlow: boolean) {
+    this.flowDeleteRequest.deleteFlow = deleteFlow;
+
+    return this;
+  }
+
   build() {
-    return this.flowDeleteRequest
+    return this.flowDeleteRequest;
   }
 
   constructor(flowDeleteRequest: FlowDeleteRequest) {

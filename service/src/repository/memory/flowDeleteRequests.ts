@@ -19,4 +19,8 @@ export class MemoryFlowDeleteRequestsImpl implements FlowDeleteRequestsRepositor
       ) ?? null
     );
   }
+
+  async saveFlowDeleteRequest(flowDeleteRequest: FlowDeleteRequest) {
+    this.flowDeleteRequests.push(flowDeleteRequest);
+  }
 }

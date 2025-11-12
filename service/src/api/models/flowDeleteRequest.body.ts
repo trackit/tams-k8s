@@ -1,20 +1,30 @@
 export enum FlowDeleteRequestStatus {
-  PENDING = "pending",
-  RUNNING = "running",
-  COMPLETED = "completed",
-  FAILED = "failed",
+  CREATED = "created",
+  STARTED = "started",
+  DONE = "done",
+  ERROR = "error",
+}
+
+export interface ErrorMetadata {
+  type: string;
+  summary: string;
+  traceback?: string[];
+  time: string | Date;
 }
 
 export interface FlowDeleteRequest {
   id: string;
-  flow_id?: string;
-  timerange: string;
-  status: FlowDeleteRequestStatus;
+  flowId: string;
+  timerangeToDelete: string;
+  timerangeRemaining?: string;
+  deleteFlow: boolean;
   progress?: number;
   created?: string | Date;
+  createdBy?: string;
   updated?: string | Date;
-  error_message?: string;
-  metadata?: Record<string, any>;
+  expiry?: string | Date;
+  status: FlowDeleteRequestStatus;
+  error?: ErrorMetadata;
 }
 
 export type FlowDeleteRequests = FlowDeleteRequest[];
