@@ -1,6 +1,6 @@
 import { Express } from 'express';
 import { BackendManager } from '../../backend/manager';
-import { setupExpressApp } from '../../index';
+import { setupExpressApp } from '../../setupApp';
 import { TestRepositories } from './repositories';
 
 interface TestData {
