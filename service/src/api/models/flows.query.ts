@@ -1,4 +1,4 @@
-import { FormatUrn } from "./flows.body";
+import { FormatUrn } from "./common.body";
 
 export interface GetFlowsQueryParamsRequest {
     source_id?: string;

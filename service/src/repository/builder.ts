@@ -6,6 +6,7 @@ import { MediaObjectsRepository } from "./mediaObjects";
 import { MemoryRepositoryFactory } from "./memory/factory";
 import { ServiceRepository } from "./service";
 import { FlowDeleteRequestsRepository } from "./flowDeleteRequests";
+import { SourceRepository } from "./source";
 
 export class RepositoriesBuilder implements Factory {
   private readonly config: DBConfig;
@@ -34,15 +35,18 @@ export class RepositoriesBuilder implements Factory {
     return this.factory.getFlowRepository();
   }
 
+  getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository {
+    return this.factory.getFlowDeleteRequestsRepository();
+  }
+  getSourceRepository(): SourceRepository {
+    return this.factory.getSourceRepository();
+  }
+
   getServiceRepository(): ServiceRepository {
     return this.factory.getServiceRepository();
   }
 
   getMediaObjectRepository(): MediaObjectsRepository {
     return this.factory.getMediaObjectRepository();
-  }
-
-  getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository {
-    return this.factory.getFlowDeleteRequestsRepository();
   }
 }

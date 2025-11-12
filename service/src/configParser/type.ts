@@ -3,6 +3,7 @@ export interface DynamoDBConfig {
     type: 'dynamodb';
     flowTableName: string;
     serviceTableName: string;
+    sourceTableName: string;
     mediaObjectTableName: string;
     flowDeleteRequestsTableName: string;
     region?: string;

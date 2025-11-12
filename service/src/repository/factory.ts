@@ -2,6 +2,7 @@ import type { FlowRepository } from "./flows";
 import { MediaObjectsRepository } from './mediaObjects';
 import { ServiceRepository } from "./service";
 import { FlowDeleteRequestsRepository } from "./flowDeleteRequests";
+import { SourceRepository } from "./source";
 
 export interface Factory {
     initialize(): Promise<void>;
@@ -9,4 +10,5 @@ export interface Factory {
     getServiceRepository(): ServiceRepository;
     getMediaObjectRepository(): MediaObjectsRepository;
     getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository;
+    getSourceRepository(): SourceRepository;
 }
