@@ -3,9 +3,9 @@ import { Flow, VideoFlow, FormatUrn } from '@tams-k8s/api';
 export class ApiFlowMother {
     private readonly flow: Flow;
 
-    static video() {
+    static video(id?: string) {
         return new ApiFlowMother({
-            id: '9dcb821f-df7a-446c-8881-ec4ec5e4f4fd',
+            id: id ?? '9dcb821f-df7a-446c-8881-ec4ec5e4f4fd',
             source_id: '4f330d5f-398a-4ee9-a3a1-741c712d2976',
             format: FormatUrn.VIDEO,
             codec: 'video/mp4',
