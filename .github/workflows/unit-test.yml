@@ -4,10 +4,14 @@ on:
 
 jobs:
   run_test:
-    name: Run test
+    name: Run service unit test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - name: Setup workdir
+        run: cd ./service
+      - name: Install dependencies
+        run: npm install
       - name: Run unit test
         run: npm run test
