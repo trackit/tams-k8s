@@ -9,9 +9,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-      - name: Setup workdir
-        run: cd ./service
       - name: Install dependencies
+        working-directory: ./service
         run: npm install
       - name: Run unit test
+        working-directory: ./service
         run: npm run test
