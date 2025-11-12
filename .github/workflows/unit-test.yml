@@ -9,9 +9,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: 'npm'
+          cache-dependency-path: ./service/package-lock.json
       - name: Install dependencies
         working-directory: ./service
-        run: npm install
+        run: npm ci
       - name: Run unit test
         working-directory: ./service
         run: npm run test
