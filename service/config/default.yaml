@@ -3,7 +3,6 @@ database:
   flowTableName: 'k8s-tams-test'
   serviceTableName: 'k8s-tams-test-service'
   sourceTableName: 'k8s-tams-test-source'
-  region: us-west-2
   mediaObjectTableName: 'k8s-tams-test-media-object'
   flowDeleteRequestsTableName: 'k8s-tams-test-flow-delete-requests'
   region: us-west-2

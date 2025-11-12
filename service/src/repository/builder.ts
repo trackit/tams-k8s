@@ -25,6 +25,7 @@ export class RepositoriesBuilder implements Factory {
       default:
         throw new Error(`Unknown configuration database type: "${config.type}"`);
     }
+    this.initialize();
   }
 
   async initialize() {

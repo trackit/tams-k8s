@@ -5,7 +5,6 @@ import {
     DynamoDBClient,
     ResourceNotFoundException
 } from '@aws-sdk/client-dynamodb';
-
 import type { DynamoDBConfig } from '../../configParser';
 import  { Factory } from "../factory";
 import  { FlowRepository } from "../flows";
@@ -74,6 +73,7 @@ export class DDBRepositoryFactory implements Factory {
             }],
             BillingMode: "PAY_PER_REQUEST",
         }));}
+
     private async createMediaObjectTable() {
         await this.client.send(new CreateTableCommand({
             TableName: this.config.mediaObjectTableName,
@@ -93,11 +93,11 @@ export class DDBRepositoryFactory implements Factory {
         await this.client.send(new CreateTableCommand({
             TableName: this.config.flowDeleteRequestsTableName,
             AttributeDefinitions: [{
-                AttributeName: 'flowDeleteRequestId',
+                AttributeName: 'id',
                 AttributeType: 'S'
             }],
             KeySchema: [{
-                AttributeName: 'flowDeleteRequestId',
+                AttributeName: 'id',
                 KeyType: 'HASH'
             }],
             BillingMode: 'PAY_PER_REQUEST'
@@ -131,7 +131,6 @@ export class DDBRepositoryFactory implements Factory {
                 log.info('Flow table created', { tableName: this.config.flowTableName });
             } else {
                 log.error('Could not verify flow table existence', { tableName: this.config.flowTableName }, e);
-                throw e;
             }
         }
         // Ensure source table exists
@@ -152,7 +151,6 @@ export class DDBRepositoryFactory implements Factory {
               log.error(
                 "Could not verify source table existence",
                 { tableName: this.config.sourceTableName }, e);
-              throw e;
             }
         }
 
@@ -168,7 +166,6 @@ export class DDBRepositoryFactory implements Factory {
                 log.info('Media object table created', { tableName: this.config.mediaObjectTableName });
             } else {
                 log.error('Could not verify media object table existence', { tableName: this.config.mediaObjectTableName });
-                throw e;
             }
         }
         
@@ -190,7 +187,6 @@ export class DDBRepositoryFactory implements Factory {
                 log.error("Could not verify flow-delete-requests table existence", {
                   tableName: this.config.flowDeleteRequestsTableName,
                 });
-                throw e;
             }
         }
     }
