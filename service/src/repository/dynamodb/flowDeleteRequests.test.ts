@@ -1,14 +1,20 @@
-import { beforeAll, beforeEach, describe, expect, test } from "vitest";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
 import { RepositoriesBuilder } from "../builder";
 import { BackendManager } from "../../backend/manager";
 import { setUpApp } from "../../setUpApp";
 import request from "supertest";
 import { FlowDeleteRequestMother } from "api/models/flowDeleteRequest.body.mother";
-import { clearDynamoTable } from "utils/dynamo";
+import { clearDynamoTable, DynamoDBTestContainer } from "utils";
+import { FlowDeleteRequestsRepository } from "repository/flowDeleteRequests";
 
-const TABLE_NAME = "k8s-tams-test-flow-delete-requests";
-
-const setUp = async () => {
+const setUp = async (endpoint: string) => {
   const repository = new RepositoriesBuilder({
     type: "dynamodb",
     flowTableName: "k8s-tams-test",
@@ -17,28 +23,49 @@ const setUp = async () => {
     mediaObjectTableName: "k8s-tams-test-media-object",
     flowDeleteRequestsTableName: "k8s-tams-test-flow-delete-requests",
     region: "us-west-2",
-    endpoint: "http://localhost:8000",
+    endpoint: endpoint,
   });
   const app = setUpApp(
     repository,
-    new BackendManager([{ type: "memory", id: "memory", default: true }]),
+    new BackendManager([{ type: "memory", id: "memory", default: true }])
   );
   await repository.initialize();
-  return { app, flowDeleteRequestRepository: repository.getFlowDeleteRequestsRepository() };
+
+  return {
+    app,
+    flowDeleteRequestRepository: repository.getFlowDeleteRequestsRepository(),
+  };
 };
 
-beforeAll(async () => {
-  await setUp();
-});
-
-beforeEach(async () => {
-  await clearDynamoTable(TABLE_NAME, "us-west-2", "http://localhost:8000");
-});
-
 describe("Testing using DynamoDB repository", () => {
+  let dynamoContainer: DynamoDBTestContainer;
+  let dynamoEndpoint: string;
+  let app: any;
+  let flowDeleteRequestRepository: FlowDeleteRequestsRepository;
+
+  beforeAll(async () => {
+    dynamoContainer = new DynamoDBTestContainer();
+    dynamoEndpoint = await dynamoContainer.start();
+
+    const setup = await setUp(dynamoEndpoint);
+    app = setup.app;
+    flowDeleteRequestRepository = setup.flowDeleteRequestRepository;
+  }, 300000);
+
+  beforeEach(async () => {
+    await clearDynamoTable(
+      "k8s-tams-test-flow-delete-requests",
+      "us-west-2",
+      dynamoEndpoint
+    );
+  });
+
+  afterAll(async () => {
+    if (dynamoContainer) await dynamoContainer.stop();
+  });
+
   describe("all flowDeleteRequest", () => {
     test("should return an empty list if no delete-request is found", async () => {
-      const { app } = await setUp();
       const response = await request(app).get("/flow-delete-requests");
 
       expect(response.status).toBe(200);
@@ -46,7 +73,6 @@ describe("Testing using DynamoDB repository", () => {
     });
 
     test("should return at least one stored delete-requests", async () => {
-      const { app, flowDeleteRequestRepository } = await setUp();
       const request1 = FlowDeleteRequestMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTimerangeToDelete("0:10_")
@@ -72,30 +98,28 @@ describe("Testing using DynamoDB repository", () => {
             timerangeToDelete: "20:30_",
             status: "created",
           }),
-        ]),
+        ])
       );
     });
   });
 
   describe("flowDeleteRequest by id", () => {
     test("should return status code 404 if delete-request doesn't exist", async () => {
-      const { app } = await setUp();
       const response = await request(app).get(
-        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9",
+        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
       expect(response.status).toBe(404);
     });
 
     test("should return the flowDeleteRequest if present", async () => {
-      const { app, flowDeleteRequestRepository } = await setUp();
       await flowDeleteRequestRepository.saveFlowDeleteRequest(
         FlowDeleteRequestMother.created()
           .withId("fcbef7e2-a6b2-486d-8f4e-a408504afcf9")
           .withTimerangeToDelete("0:0_")
-          .build(),
+          .build()
       );
       const response = await request(app).get(
-        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9",
+        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
