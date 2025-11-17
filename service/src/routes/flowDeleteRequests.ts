@@ -11,10 +11,14 @@ import { RepositoriesBuilder } from "../repository/builder";
 import { BackendManager } from "../backend/manager";
 import { NotFoundHttpError, ParamsSchema, validator } from "./middlewares";
 import { Routes } from "./generic";
+import {flowDeleteRequestsRepositoryToken} from "../repository/flowDeleteRequests";
+import {inject} from "../di";
 
 export class FlowDeleteRequestsRoutes extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
-    super(repositories, backends);
+  private readonly repo = inject(flowDeleteRequestsRepositoryToken)
+
+  constructor(repositories: RepositoriesBuilder, backends: BackendManager) { // TODO: remove params
+    super(repositories, backends); // TODO: remove this
 
     this.route.get(
       "/",
@@ -30,9 +34,8 @@ export class FlowDeleteRequestsRoutes extends Routes {
   }
 
   private async listFlowDeleteRequests(_: any, res: Response<FlowDeleteRequest[]>) {
-    const repo = this.repositories.getFlowDeleteRequestsRepository();
     try {
-      const requests = await repo.listFlowDeleteRequest();
+      const requests = await this.repo.listFlowDeleteRequest();
       res.json(requests);
     } catch (e) {
       throw e;
@@ -43,8 +46,7 @@ export class FlowDeleteRequestsRoutes extends Routes {
     req: ValidatedRequest<ParamsSchema<GetFlowDeleteRequestsPathParams>>,
     res: Response<FlowDeleteRequest>,
   ): Promise<void> {
-    const repo = this.repositories.getFlowDeleteRequestsRepository();
-    const request = await repo.getFlowDeleteRequestById(req.params.requestId);
+    const request = await this.repo.getFlowDeleteRequestById(req.params.requestId);
 
     if (!request) throw new NotFoundHttpError("Flow delete request not found");
     res.json(request);

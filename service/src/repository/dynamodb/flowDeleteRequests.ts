@@ -9,15 +9,12 @@ import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { DynamoDBConfig } from "../../configParser";
 import { FlowDeleteRequestsRepository } from "../flowDeleteRequests";
 import { ErrorMetadata, FlowDeleteRequest } from "../../api/";
+import { dynamodbClientToken, dynamodbConfigToken } from "./client";
+import { inject } from "../../di";
 
 export class DDBFlowDeleteRequestsImpl implements FlowDeleteRequestsRepository {
-  private readonly client: DynamoDBClient;
-  private readonly config: DynamoDBConfig;
-
-  constructor(client: DynamoDBClient, config: DynamoDBConfig) {
-    this.client = client;
-    this.config = config;
-  }
+  private readonly client: DynamoDBClient = inject(dynamodbClientToken)
+  private readonly config: DynamoDBConfig = inject(dynamodbConfigToken)
 
   private ErrorMetadataRecordToRequest(data: Record<string, any>): ErrorMetadata {
     return {

@@ -20,6 +20,8 @@
     "express": "^5.1.0",
     "express-joi-validation": "^6.1.0",
     "joi": "^17.13.3",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0",
     "typescript": "^5.9.2",
     "uuid": "^13.0.0",
     "winston": "^3.18.2",

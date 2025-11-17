@@ -6,14 +6,13 @@ import { setUpApp } from "setUpApp";
 
 const config = new ConfigReader().getCachedConfig();
 
-const main = async () => {
-  const backends = new BackendManager(config.backends);
-  await backends.initialize();
+registerInfra(config);
 
-  const repositories = new RepositoriesBuilder(config.database);
+const main = async () => {
+  await backends.initialize();
   await repositories.initialize();
 
-  const app = setUpApp(repositories, backends);
+  const app = setUpApp();
 
   app.listen(config.server.port, () => log.info(`Server is running on port ${config.server.port}`));
 };
