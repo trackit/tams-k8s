@@ -33,4 +33,8 @@ export const sourcesValidator = Joi.array().items(sourceValidator);
 
 export const sourceDescriptionValidator = Joi.string();
 
+export const sourceDescriptionBodyValidator = Joi.object({
+  value: Joi.string().required(),
+});
+
 export const sourceLabelValidator = Joi.string();

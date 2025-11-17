@@ -51,7 +51,25 @@ export class MemorySourceImpl implements SourceRepository {
 
       if (tags) {
         filteredSources = filteredSources.filter((s) =>
-          Object.entries(tags).every(([key, value]) => s.tags?.[key] === value)
+          Object.entries(tags).every(([key, value]) => {
+            const sourceValue = s.tags?.[key];
+
+            if (!sourceValue) return false;
+
+            if (typeof value === "string") {
+              if (typeof sourceValue === "string") return sourceValue === value;
+              return sourceValue.includes(value);
+            }
+
+            if (Array.isArray(value)) {
+              const srcArray = Array.isArray(sourceValue)
+                ? sourceValue
+                : [sourceValue];
+              return value.every((v) => srcArray.includes(v));
+            }
+
+            return false;
+          })
         );
       }
 
