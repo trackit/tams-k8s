@@ -3,7 +3,7 @@ import { FormatUrn } from "@tams-k8s/api";
 export interface ListSourcesFilters {
   format?: string;
   label?: string;
-  tags?: Record<string, string>;
+  tags?: Record<string, string | string[]>;
   haveTags?: string[];
   doesNotHaveTags?: string[];
   page?: string;

@@ -26,8 +26,12 @@ export class DDBSourcesImpl implements SourceRepository {
     this.config = config;
   }
 
-  private encodePageToken(sourceId: string) {
-    return Buffer.from(sourceId, "utf8").toString("base64url");
+  private encodePageToken(
+    lastEvaluatedKey: Record<string, AttributeValue>
+  ): string {
+    return Buffer.from(JSON.stringify(lastEvaluatedKey), "utf8").toString(
+      "base64url"
+    );
   }
 
   private sourceCollectionItemRecordToSourceCollectionItem(
@@ -95,9 +99,17 @@ export class DDBSourcesImpl implements SourceRepository {
     }
 
     Object.entries(filters?.tags ?? {}).forEach(([key, value]) => {
-      const keyName = `#key${nameInc++}`;
-      filterExpr.push(`tags.${keyName} = :tag_${key}`);
-      exprAttrVal[`:tag_${key}`] = { S: value };
+      const keyName = `#key${nameInc}`;
+      const valueName = `:tag_${nameInc}`;
+      nameInc++;
+
+      filterExpr.push(
+        `(tags.${keyName} = ${valueName} OR contains(tags.${keyName}, ${valueName}))`
+      );
+
+      exprAttrVal[valueName] = {
+        S: typeof value === "string" ? value : value[0],
+      };
       exprAttrNames[keyName] = key;
     });
 
@@ -129,7 +141,7 @@ export class DDBSourcesImpl implements SourceRepository {
           Buffer.from(filters.page, "base64").toString("utf-8")
         );
       } catch (error) {
-        new InvalidPageTokenError();
+        throw new InvalidPageTokenError();
       }
     }
 
@@ -138,8 +150,8 @@ export class DDBSourcesImpl implements SourceRepository {
     }
 
     const resp = await this.client.send(new ScanCommand(scanParams));
-    const nextPageToken = resp.LastEvaluatedKey?.sourceId?.S
-      ? this.encodePageToken(resp.LastEvaluatedKey.sourceId.S)
+    const nextPageToken = resp.LastEvaluatedKey
+      ? this.encodePageToken(resp.LastEvaluatedKey)
       : undefined;
 
     return {

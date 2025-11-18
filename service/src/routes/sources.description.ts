@@ -9,6 +9,7 @@ import {
   PutSourceDescriptionPathParams,
   putSourceDescriptionPathParamsValidator,
   HeadSourceDescriptionPathParams,
+  sourceDescriptionBodyValidator,
 } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
 import { BackendManager } from "../backend/manager";
@@ -26,10 +27,10 @@ export class SourcesDescription extends Routes {
       validator.response(sourceDescriptionValidator),
       this.getSourceDescription.bind(this),
     );
-    this.route.put<any, void, string>(
+    this.route.put<any, void, {value: string}>(
       "/:sourceId/description",
       validator.params(putSourceDescriptionPathParamsValidator),
-      validator.body(sourceDescriptionValidator.required()),
+      validator.body(sourceDescriptionBodyValidator.required()),
       this.putSourceDescription.bind(this),
     );
     this.route.delete<any, void>(
@@ -51,14 +52,14 @@ export class SourcesDescription extends Routes {
   }
 
   private async putSourceDescription(
-    req: ValidatedRequest<ParamsBodySchema<PutSourceDescriptionPathParams, string>>,
+    req: ValidatedRequest<ParamsBodySchema<PutSourceDescriptionPathParams, {value: string}>>,
     res: Response<void>,
   ) {
     const sourceRepository = this.repositories.getSourceRepository();
     const source = await sourceRepository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
-    source.description = req.body;
+    source.description = req.body.value;
     await sourceRepository.putSource(source);
     res.sendStatus(204);
   }

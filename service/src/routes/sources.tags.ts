@@ -11,6 +11,7 @@ import {
   getSourceTagsPathParamsValidator,
   PutSourceTagPathParams,
   putSourceTagPathParamsValidator,
+  sourceTagBodyValidator,
 } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
 import { BackendManager } from "../backend/manager";
@@ -37,7 +38,7 @@ export class SourcesTags extends Routes {
     this.route.put<any, void>(
       "/:sourceId/tags/:name",
       validator.params(putSourceTagPathParamsValidator),
-      validator.body(sourceTagValidator.required()),
+      validator.body(sourceTagBodyValidator.required()),
       this.putSourceTag.bind(this),
     );
     this.route.delete<any, void>(
@@ -73,7 +74,7 @@ export class SourcesTags extends Routes {
   }
 
   private async putSourceTag(
-    req: ValidatedRequest<ParamsBodySchema<PutSourceTagPathParams, string>>,
+    req: ValidatedRequest<ParamsBodySchema<PutSourceTagPathParams, {value: string}>>,
     res: Response<void>,
   ) {
     const sourceRepository = this.repositories.getSourceRepository();
@@ -81,7 +82,7 @@ export class SourcesTags extends Routes {
     if (source === null)
       throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
     source.tags = source.tags || {};
-    source.tags[req.params.name] = req.body;
+    source.tags[req.params.name] = req.body.value;
     await sourceRepository.putSource(source);
     res.sendStatus(204);
   }

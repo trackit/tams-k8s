@@ -7,12 +7,6 @@ jobs:
   run-tests:
     runs-on: ubuntu-latest
 
-    services:
-      dynamodb:
-        image: amazon/dynamodb-local
-        ports:
-          - 8000:8000
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -27,10 +21,6 @@ jobs:
       - name: Install dependencies
         working-directory: ./service
         run: npm ci
-
-      - name: Wait for DynamoDB
-        run: |
-          timeout 30 sh -c 'until curl -s http://localhost:8000 > /dev/null; do sleep 1; done'
 
       - name: Run tests
         working-directory: ./service
