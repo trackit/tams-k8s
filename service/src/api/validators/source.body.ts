@@ -11,7 +11,14 @@ export const sourceTagsValidator = Joi.object().pattern(
   Joi.alternatives().try(Joi.string(), Joi.array().items(Joi.string()))
 );
 
-export const sourceTagValidator = Joi.string();
+export const sourceTagValidator = Joi.alternatives().try(
+  Joi.string(),
+  Joi.array().items(Joi.string())
+);
+
+export const sourceTagBodyValidator = Joi.object({
+  value: Joi.string().required(),
+});
 
 export const sourceValidator = Joi.object<Source>({
   id: Joi.string().uuid().required(),
@@ -38,3 +45,7 @@ export const sourceDescriptionBodyValidator = Joi.object({
 });
 
 export const sourceLabelValidator = Joi.string();
+
+export const sourceLabelBodyValidator = Joi.object({
+  value: Joi.string().required(),
+});

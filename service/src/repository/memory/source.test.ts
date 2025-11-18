@@ -200,7 +200,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should return the description if the requested source exist", async () => {
+    test("should return the description of the requested source", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/description"
       );
@@ -235,7 +235,158 @@ describe("Testing Sources routes using memory repository", () => {
     });
   });
 
-  //   describe("source labels", () => {});
+  describe("source label", () => {
+    let s: Source;
 
-  //   describe("source tags", () => {});
+    beforeAll(async () => {
+      s = SourceMother.created()
+        .withId("11111111-1111-1111-1111-111111111111")
+        .withLabel("Testing")
+        .build();
+      await sourceRepository.putSource(s);
+    });
+
+    test("should return 404 if the requested source doesn't exist", async () => {
+      const response = await request(app).get(
+        "/sources/00000000-0000-0000-0000-000000000000/label"
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    test("should return the label of the requested source", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/label"
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual("Testing");
+    });
+
+    test("should update the label of the requested source", async () => {
+      const newLabel = { value: "Updated label" };
+      const response = await request(app)
+        .put(`/sources/11111111-1111-1111-1111-111111111111/label`)
+        .send(newLabel);
+
+      expect(response.status).toBe(204);
+      const updated = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
+      );
+      expect(updated?.label).toBe("Updated label");
+    });
+
+    test("should delete the label of the requested source", async () => {
+      const response = await request(app).delete(
+        `/sources/11111111-1111-1111-1111-111111111111/label`
+      );
+      expect(response.status).toBe(204);
+
+      const updated = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
+      );
+      expect(updated?.label).toBe(undefined);
+    });
+
+    test("should return 404 if the requested source doesn't have a label", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/label"
+      );
+
+      expect(response.status).toBe(404);
+    });
+  });
+
+  describe("source tags", () => {
+    let s: Source;
+
+    beforeAll(async () => {
+      s = SourceMother.created()
+        .withId("11111111-1111-1111-1111-111111111111")
+        .withTags({ key: ["value1", "value2"], tag: "test" })
+        .build();
+      await sourceRepository.putSource(s);
+    });
+
+    test("should return 404 if the requested source doesn't exist", async () => {
+      const response = await request(app).get(
+        "/sources/00000000-0000-0000-0000-000000000000/tags"
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    test("should return the tags of the requested source", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/tags"
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ key: ["value1", "value2"], tag: "test" });
+    });
+
+    test("should return the value of a specific tag for string", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/tags/tag"
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual("test");
+    });
+
+    test("should return the value of a specific tag for array of string", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/tags/key"
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual(["value1", "value2"]);
+    });
+
+    test("should return 404 if the value of a specific tag doesn't exist", async () => {
+      const response = await request(app).get(
+        "/sources/11111111-1111-1111-1111-111111111111/tags/unknow"
+      );
+
+      expect(response.status).toBe(404);
+    });
+
+    test("should create the tag for the requested source", async () => {
+      const newTag = { value: "newTag" };
+      const response = await request(app)
+        .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
+        .send(newTag);
+
+      expect(response.status).toBe(204);
+      const updated = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
+      );
+      expect(updated?.tags?.new).toBe("newTag");
+    });
+
+    test("should update the tag of the requested source", async () => {
+      const newTag = { value: "updated" };
+      const response = await request(app)
+        .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
+        .send(newTag);
+
+      expect(response.status).toBe(204);
+      const updated = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
+      );
+      expect(updated?.tags?.new).toBe("updated");
+    });
+
+    test("should delete the tag of the requested source", async () => {
+      const response = await request(app).delete(
+        `/sources/11111111-1111-1111-1111-111111111111/tags/tag`
+      );
+      expect(response.status).toBe(204);
+
+      const updated = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
+      );
+      expect(updated?.tags?.tag).toBe(undefined);
+    });
+  });
 });
