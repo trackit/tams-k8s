@@ -1,20 +1,41 @@
 import { beforeAll, describe, expect, test } from "vitest";
-import { RepositoriesBuilder } from "../builder";
-import { BackendManager } from "../../backend/manager";
-import { setUpApp } from "../../setUpApp";
+import { RepositoriesBuilder } from "../repository/builder";
+import { BackendManager } from "../backend/manager";
+import { setUpApp } from "../setUpApp";
 import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "@tams-k8s/api";
-import { SourceRepository } from "repository/source";
+import { inject, register, reset } from "../di";
+import {
+  SourceRepository,
+  sourceRepositoryToken,
+  flowDeleteRequestsRepositoryToken,
+} from "../repository";
+import {
+  MemorySourceRepository,
+  MemoryFlowDeleteRequestsRepository,
+} from "../repository/memory";
+
+const registerTestInfrastructure = () => {
+  register(sourceRepositoryToken, {
+    useClass: MemorySourceRepository,
+  });
+
+  register(flowDeleteRequestsRepositoryToken, {
+    useClass: MemoryFlowDeleteRequestsRepository,
+  });
+};
 
 const setUp = () => {
-  const repository = new RepositoriesBuilder({ type: "memory" });
+  reset();
+  registerTestInfrastructure();
+  // TODO: Remove after SetupApp refacto
   const app = setUpApp(
-    repository,
+    new RepositoriesBuilder({ type: "memory" }),
     new BackendManager([{ type: "memory", id: "memory", default: true }])
   );
   return {
     app,
-    sourceRepository: repository.getSourceRepository(),
+    sourceRepository: inject(sourceRepositoryToken),
   };
 };
 

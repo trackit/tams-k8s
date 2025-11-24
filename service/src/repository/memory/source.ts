@@ -3,11 +3,11 @@ import type {
   Source,
   SourceRepository,
   ListSourcesResponse,
-} from "../source";
+} from "../index";
 import Joi from "joi";
 import { InvalidPageTokenError } from "../errors";
 
-export class MemorySourceImpl implements SourceRepository {
+export class MemorySourceRepository implements SourceRepository {
   private readonly sources: Source[];
 
   constructor() {

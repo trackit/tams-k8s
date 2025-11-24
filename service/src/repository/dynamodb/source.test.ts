@@ -1,48 +1,36 @@
 import { afterAll, beforeAll, describe, expect, test } from "vitest";
-import { RepositoriesBuilder } from "../builder";
-import { BackendManager } from "../../backend/manager";
-import { setUpApp } from "../../setUpApp";
-import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "../../api";
-import { SourceRepository } from "../../repository/source";
+import { SourceRepository } from "../../repository";
 import { DynamoDBTestContainer } from "../../utils";
+import { register } from "../../di";
+import { DDBSourcesRepository, SourceTableNameToken } from "./source";
+import { dynamodbClientToken } from "./client";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { InvalidPageTokenError } from "../../repository/errors";
 
 const setUp = async (endpoint: string) => {
-  const repository = new RepositoriesBuilder({
-    type: "dynamodb",
-    flowTableName: "k8s-tams-test",
-    serviceTableName: "k8s-tams-test-service",
-    sourceTableName: "k8s-tams-test-source",
-    mediaObjectTableName: "k8s-tams-test-media-object",
-    flowDeleteRequestsTableName: "k8s-tams-test-flow-delete-requests",
-    region: "us-west-2",
-    endpoint: endpoint,
+  register(SourceTableNameToken, { useValue: "source_table" });
+  register(dynamodbClientToken, {
+    useFactory: () => {
+      return new DynamoDBClient({ endpoint: endpoint, region: "us-west-2" });
+    },
   });
-  const app = setUpApp(
-    repository,
-    new BackendManager([{ type: "memory", id: "memory", default: true }])
-  );
-  await repository.initialize();
 
-  return {
-    app,
-    sourceRepository: repository.getSourceRepository(),
-  };
+  const repository = new DDBSourcesRepository();
+  await repository.createTable();
+
+  return repository;
 };
 
-describe("Testing Sources routes using DynamoDB repository", () => {
+describe("Testing Sources DynamoDB repository", () => {
   let dynamoContainer: DynamoDBTestContainer;
   let dynamoEndpoint: string;
-  let app: any;
   let sourceRepository: SourceRepository;
 
   beforeAll(async () => {
     dynamoContainer = new DynamoDBTestContainer();
     dynamoEndpoint = await dynamoContainer.start();
-
-    const setup = await setUp(dynamoEndpoint);
-    app = setup.app;
-    sourceRepository = setup.sourceRepository;
+    sourceRepository = await setUp(dynamoEndpoint);
   }, 300000);
 
   afterAll(async () => {
@@ -50,10 +38,9 @@ describe("Testing Sources routes using DynamoDB repository", () => {
   });
 
   test("should return an empty list if no source is found", async () => {
-    const response = await request(app).get("/sources");
+    const response = await sourceRepository.listSources();
 
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([]);
+    expect(response.sources).toEqual([]);
   });
 
   describe("all sources", () => {
@@ -84,28 +71,35 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should return all sources", async () => {
-      const response = await request(app).get("/sources");
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(3);
+      const response = await sourceRepository.listSources();
+      expect(response.sources).toHaveLength(3);
     });
 
     test("should filter by label", async () => {
-      const response = await request(app).get("/sources?label=camera-1");
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].id).toBe("11111111-1111-1111-1111-111111111111");
+      const response = await sourceRepository.listSources({
+        label: "camera-1",
+      });
+      expect(response.sources).toHaveLength(1);
+      expect(response.sources[0].id).toBe(
+        "11111111-1111-1111-1111-111111111111"
+      );
     });
 
     test("should filter by format", async () => {
-      const response = await request(app).get(
-        "/sources?format=urn:x-nmos:format:video"
+      const response = await sourceRepository.listSources({
+        format: "urn:x-nmos:format:video",
+      });
+      expect(response.sources).toHaveLength(1);
+      expect(response.sources[0].id).toBe(
+        "22222222-2222-2222-2222-222222222222"
       );
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
     test("should filter by tag", async () => {
-      const response = await request(app).get("/sources?tag.key=value1");
-      const ids = response.body.map((s: any) => s.id);
+      const response = await sourceRepository.listSources({
+        tags: { key: "value1" },
+      });
+      const ids = response.sources.map((s: any) => s.id);
 
       expect(ids).toContain("22222222-2222-2222-2222-222222222222");
       expect(ids).toContain("33333333-3333-3333-3333-333333333333");
@@ -113,30 +107,34 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should filter correctly using haveTags and doesNotHaveTags", async () => {
-      const response = await request(app).get(
-        "/sources?tag_exists.tag=true&tag_exists.key=false"
-      );
+      const response = await sourceRepository.listSources({
+        haveTags: ["tag"],
+        doesNotHaveTags: ["key"],
+      });
 
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].id).toBe("11111111-1111-1111-1111-111111111111");
+      expect(response.sources).toHaveLength(1);
+      expect(response.sources[0].id).toBe(
+        "11111111-1111-1111-1111-111111111111"
+      );
     });
 
     test("should filter with combined: format + tag", async () => {
-      const response = await request(app).get(
-        "/sources?format=urn:x-nmos:format:video&tag.key=value1"
+      const response = await sourceRepository.listSources({
+        format: "urn:x-nmos:format:video",
+        tags: { key: "value1" },
+      });
+
+      expect(response.sources).toHaveLength(1);
+      expect(response.sources[0].id).toBe(
+        "22222222-2222-2222-2222-222222222222"
       );
-      expect(response.status).toBe(200);
-      expect(response.body).toHaveLength(1);
-      expect(response.body[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
     test("should return only {limit} sources and NextKey should point to correct source", async () => {
-      const firstPage = await request(app).get("/sources?limit=2");
-      expect(firstPage.status).toBe(200);
-      expect(firstPage.body).toHaveLength(2);
+      const firstPage = await sourceRepository.listSources({ limit: 2 });
+      expect(firstPage.sources).toHaveLength(2);
 
-      const firstPageIds = firstPage.body.map((s: any) => s.id);
+      const firstPageIds = firstPage.sources.map((s: Source) => s.id);
       const allSourceIds = [
         "11111111-1111-1111-1111-111111111111",
         "22222222-2222-2222-2222-222222222222",
@@ -146,44 +144,40 @@ describe("Testing Sources routes using DynamoDB repository", () => {
         expect(allSourceIds).toContain(id);
       });
 
-      expect(Number(firstPage.headers["x-paging-limit"])).toBe(2);
-      const nextKey = firstPage.headers["x-paging-nextkey"];
+      expect(Number(firstPage.limit)).toBe(2);
+      const nextKey = firstPage.nextPageToken;
       expect(nextKey).toBeDefined();
       expect(typeof nextKey).toBe("string");
 
-      const link = firstPage.headers["link"];
-      expect(link).toBeDefined();
-      expect(link).toContain('rel="next"');
-      expect(link).toContain(nextKey);
+      const secondPage = await sourceRepository.listSources({
+        page: nextKey,
+        limit: 2,
+      });
 
-      const secondPage = await request(app).get(
-        `/sources?page=${encodeURIComponent(nextKey)}&limit=2`
-      );
-
-      expect(secondPage.status).toBe(200);
-      expect(secondPage.body).toHaveLength(1);
-
-      const secondPageId = secondPage.body[0].id;
+      expect(secondPage.sources).toHaveLength(1);
+      const secondPageId = secondPage.sources[0].id;
       expect(firstPageIds).not.toContain(secondPageId);
       expect(allSourceIds).toContain(secondPageId);
 
-      expect(secondPage.headers["x-paging-nextkey"]).toBeUndefined();
+      expect(secondPage.nextPageToken).toBeUndefined();
     });
 
-    test("should return 400 for invalid page token", async () => {
-      const response = await request(app).get("/sources?page=%%%INVALID%%%");
-
-      expect(response.status).toBe(400);
+    test("should throw InvalidPageTokenError for invalid page token", async () => {
+      await expect(
+        sourceRepository.listSources({
+          page: "%%%INVALID%%%",
+        })
+      ).rejects.toThrow(InvalidPageTokenError);
     });
   });
 
   describe("source by id", () => {
-    test("should return status code 404 if source doesn't exist", async () => {
-      const response = await request(app).get(
-        "/sources/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
+    test("should return nullif source doesn't exist", async () => {
+      const response = await sourceRepository.getSourceById(
+        "fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
 
-      expect(response.status).toBe(404);
+      expect(response).toBeNull();
     });
 
     test("should return the source if present", async () => {
@@ -193,15 +187,13 @@ describe("Testing Sources routes using DynamoDB repository", () => {
           .withFormat(FormatUrn.VIDEO)
           .build()
       );
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toMatchObject({
-        id: "11111111-1111-1111-1111-111111111111",
-        format: "urn:x-nmos:format:video",
-      });
+      expect(response).toBeDefined();
+      expect(response?.id).toBe("11111111-1111-1111-1111-111111111111");
+      expect(response?.format).toBe(FormatUrn.VIDEO);
     });
   });
 
@@ -216,30 +208,25 @@ describe("Testing Sources routes using DynamoDB repository", () => {
       await sourceRepository.putSource(s1);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
-      const response = await request(app).get(
-        "/sources/00000000-0000-0000-0000-000000000000/description"
+    test("should return null if the requested source doesn't exist", async () => {
+      const response = await sourceRepository.getSourceById(
+        "00000000-0000-0000-0000-000000000000"
       );
 
-      expect(response.status).toBe(404);
+      expect(response).toBeNull();
     });
 
     test("should return the description of the requested source", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/description"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual("Description for testing purpose");
+      expect(response?.description).toBe("Description for testing purpose");
     });
 
     test("should update the description of the requested source", async () => {
-      const newDescription = { value: "Updated description for testing" };
-      const response = await request(app)
-        .put(`/sources/11111111-1111-1111-1111-111111111111/description`)
-        .send(newDescription);
-
-      expect(response.status).toBe(204);
+      s1.description = "Updated description for testing";
+      await sourceRepository.putSource(s1);
       const updated = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
@@ -247,15 +234,12 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should delete the description of the requested source", async () => {
-      const response = await request(app).delete(
-        `/sources/11111111-1111-1111-1111-111111111111/description`
-      );
-      expect(response.status).toBe(204);
-
-      const updated = await sourceRepository.getSourceById(
+      s1.description = undefined;
+      await sourceRepository.putSource(s1);
+      const response = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
-      expect(updated?.description).toBe(undefined);
+      expect(response?.description).toBeUndefined();
     });
   });
 
@@ -270,30 +254,25 @@ describe("Testing Sources routes using DynamoDB repository", () => {
       await sourceRepository.putSource(s);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
-      const response = await request(app).get(
-        "/sources/00000000-0000-0000-0000-000000000000/label"
+    test("should return null if the requested source doesn't exist", async () => {
+      const response = await sourceRepository.getSourceById(
+        "00000000-0000-0000-0000-000000000000"
       );
 
-      expect(response.status).toBe(404);
+      expect(response).toBeNull();
     });
 
     test("should return the label of the requested source", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/label"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual("Testing");
+      expect(response?.label).toBe("Testing");
     });
 
     test("should update the label of the requested source", async () => {
-      const newLabel = { value: "Updated label" };
-      const response = await request(app)
-        .put(`/sources/11111111-1111-1111-1111-111111111111/label`)
-        .send(newLabel);
-
-      expect(response.status).toBe(204);
+      s.label = "Updated label";
+      await sourceRepository.putSource(s);
       const updated = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
@@ -301,23 +280,20 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should delete the label of the requested source", async () => {
-      const response = await request(app).delete(
-        `/sources/11111111-1111-1111-1111-111111111111/label`
-      );
-      expect(response.status).toBe(204);
-
-      const updated = await sourceRepository.getSourceById(
+      s.label = undefined;
+      await sourceRepository.putSource(s);
+      const response = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
-      expect(updated?.label).toBe(undefined);
+      expect(response?.label).toBeUndefined();
     });
 
-    test("should return 404 if the requested source doesn't have a label", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/label"
+    test("should return undefined if the requested source doesn't have a label", async () => {
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(404);
+      expect(response?.label).toBeUndefined();
     });
   });
 
@@ -332,56 +308,52 @@ describe("Testing Sources routes using DynamoDB repository", () => {
       await sourceRepository.putSource(s);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
-      const response = await request(app).get(
-        "/sources/00000000-0000-0000-0000-000000000000/tags"
+    test("should return null if the requested source doesn't exist", async () => {
+      const response = await sourceRepository.getSourceById(
+        "00000000-0000-0000-0000-000000000000"
       );
 
-      expect(response.status).toBe(404);
+      expect(response).toBeNull();
     });
 
     test("should return the tags of the requested source", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/tags"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual({ key: ["value1", "value2"], tag: "test" });
+      expect(response?.tags).toEqual({
+        key: ["value1", "value2"],
+        tag: "test",
+      });
     });
 
     test("should return the value of a specific tag for string", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/tags/tag"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual("test");
+      expect(response?.tags?.tag).toBe("test");
     });
 
     test("should return the value of a specific tag for array of string", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/tags/key"
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(200);
-      expect(response.body).toEqual(["value1", "value2"]);
+      expect(response?.tags?.key).toEqual(["value1", "value2"]);
     });
 
-    test("should return 404 if the value of a specific tag doesn't exist", async () => {
-      const response = await request(app).get(
-        "/sources/11111111-1111-1111-1111-111111111111/tags/unknow"
+    test("should return undefined if the value of a specific tag doesn't exist", async () => {
+      const response = await sourceRepository.getSourceById(
+        "11111111-1111-1111-1111-111111111111"
       );
 
-      expect(response.status).toBe(404);
+      expect(response?.tags?.unknown).toBeUndefined();
     });
 
     test("should create the tag for the requested source", async () => {
-      const newTag = { value: "newTag" };
-      const response = await request(app)
-        .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
-        .send(newTag);
-
-      expect(response.status).toBe(204);
+      s.tags = { ...s.tags, new: "newTag" };
+      await sourceRepository.putSource(s);
       const updated = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
@@ -389,12 +361,8 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should update the tag of the requested source", async () => {
-      const newTag = { value: "updated" };
-      const response = await request(app)
-        .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
-        .send(newTag);
-
-      expect(response.status).toBe(204);
+      s.tags = { ...s.tags, new: "updated" };
+      await sourceRepository.putSource(s);
       const updated = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );
@@ -402,11 +370,8 @@ describe("Testing Sources routes using DynamoDB repository", () => {
     });
 
     test("should delete the tag of the requested source", async () => {
-      const response = await request(app).delete(
-        `/sources/11111111-1111-1111-1111-111111111111/tags/tag`
-      );
-      expect(response.status).toBe(204);
-
+      s.tags = { key: ["value1", "value2"] };
+      await sourceRepository.putSource(s);
       const updated = await sourceRepository.getSourceById(
         "11111111-1111-1111-1111-111111111111"
       );

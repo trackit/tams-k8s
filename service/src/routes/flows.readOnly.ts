@@ -32,14 +32,14 @@ export class FlowsReadOnly extends Routes {
     }
 
     async getFlowReadOnly(req: ValidatedRequest<ParamsSchema<GetFlowReadOnlyPathParams>>, res: Response<boolean>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         res.json(flow.readOnly === true);
     }
 
     async putFlowReadOnly(req: ValidatedRequest<ParamsBodySchema<PutFlowReadOnlyPathParams, boolean>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         flow.metadataUpdated = new Date();

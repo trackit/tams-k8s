@@ -14,9 +14,9 @@ import { FlowDeleteRequestsRepository } from '../flowDeleteRequests';
 import { DDBFlowsImpl } from "./flows";
 import { DDBMediaObjectsImpl } from './mediaObjects';
 import { DDBServiceImpl } from "./service";
-import { DDBFlowDeleteRequestsImpl } from './flowDeleteRequests';
+import { DDBFlowDeleteRequestsRepository } from "./flowDeleteRequests";
 import { SourceRepository } from 'repository/source';
-import { DDBSourcesImpl } from './source';
+import { DDBSourcesRepository } from './source';
 
 export class DDBRepositoryFactory implements Factory {
     private readonly config: DynamoDBConfig;
@@ -89,6 +89,7 @@ export class DDBRepositoryFactory implements Factory {
         }))
     }
 
+    // TODO: remove and use func from repo
     private async createFlowDeleteRequestsTable() {
         await this.client.send(new CreateTableCommand({
             TableName: this.config.flowDeleteRequestsTableName,
@@ -200,7 +201,7 @@ export class DDBRepositoryFactory implements Factory {
     }
 
     getSourceRepository(): SourceRepository {
-        return new DDBSourcesImpl(this.client, this.config);
+        return new DDBSourcesRepository();
     }
 
     getMediaObjectRepository(): MediaObjectsRepository {
@@ -208,6 +209,6 @@ export class DDBRepositoryFactory implements Factory {
     }
 
     getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository {
-        return new DDBFlowDeleteRequestsImpl(this.client, this.config);
+        return new DDBFlowDeleteRequestsRepository();
     }
 }

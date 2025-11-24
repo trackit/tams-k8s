@@ -48,14 +48,14 @@ export class FlowsTags extends Routes {
     }
 
     private async getFlowTags(req: ValidatedRequest<ParamsSchema<GetFlowTagsPathParams>>, res: Response<FlowTags>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError('Flow could not be found');
         res.json(flow.tags);
     }
 
     private async getFlowTag(req: ValidatedRequest<ParamsSchema<GetFlowTagPathParams>>, res: Response<string>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.tags?.[req.params.name] === undefined) throw new NotFoundHttpError(`Tag "${req.params.name}" could not be found`);
@@ -63,7 +63,7 @@ export class FlowsTags extends Routes {
     }
 
     private async putFlowTag(req: ValidatedRequest<ParamsBodySchema<PutFlowTagPathParams, string>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
@@ -75,7 +75,7 @@ export class FlowsTags extends Routes {
     }
 
     private async deleteFlowTag(req: ValidatedRequest<ParamsSchema<DeleteFlowTagPathParams>>, res: Response) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');

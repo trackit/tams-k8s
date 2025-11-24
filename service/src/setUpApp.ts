@@ -3,7 +3,7 @@ import { FlowsRoutes, RootRoutes, ServiceRoutes, FlowDeleteRequestsRoutes } from
 import express from "express";
 import { BackendManager } from "./backend/manager";
 import { RepositoriesBuilder } from "./repository/builder";
-import { SourcesRoutes } from "routes/sources";
+import { SourcesRoutes } from "./routes/sources";
 
 export const setUpApp = (repositories: RepositoriesBuilder, backends: BackendManager) => {
   const app = express();
@@ -22,10 +22,10 @@ export const setUpApp = (repositories: RepositoriesBuilder, backends: BackendMan
   const flowRoutes = new FlowsRoutes(repositories, backends);
   app.use("/flows", flowRoutes.getRoutes());
 
-  const sourcesRoutes = new SourcesRoutes(repositories, backends);
+  const sourcesRoutes = new SourcesRoutes();
   app.use("/sources", sourcesRoutes.getRoutes());
 
-  const flowDeleteRequestsRoutes = new FlowDeleteRequestsRoutes(repositories, backends);
+  const flowDeleteRequestsRoutes = new FlowDeleteRequestsRoutes();
   app.use("/flow-delete-requests", flowDeleteRequestsRoutes.getRoutes());
 
   app.use(validationHelper);

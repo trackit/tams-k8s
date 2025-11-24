@@ -22,7 +22,7 @@ export class ServiceRoutes extends Routes {
     }
 
     private async get(_: Request, res: Response<GetServiceResponse>) {
-        const serviceRepo = this.repositories.getServiceRepository();
+        const serviceRepo = this.repositories!.getServiceRepository();
         const { name, description } = await serviceRepo.getService();
         res.json({
             name,
@@ -35,7 +35,7 @@ export class ServiceRoutes extends Routes {
     }
 
     private async update(req: ValidatedRequest<BodySchema<PostServiceRequest>>, res: Response) {
-        const serviceRepo = this.repositories.getServiceRepository();
+        const serviceRepo = this.repositories!.getServiceRepository();
         await serviceRepo.updateService({
             name: req.body.name,
             description: req.body.description,
@@ -44,7 +44,7 @@ export class ServiceRoutes extends Routes {
     }
 
     private async getStorageBackends(_: Request, res: Response<StorageBackends>) {
-        res.json(await Promise.all(this.backends.getBackends().map(async (backend) => {
+        res.json(await Promise.all(this.backends!.getBackends().map(async (backend) => {
             const info = await backend.getBucketInformation();
             return {
                 id: backend.getId(),

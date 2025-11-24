@@ -38,14 +38,14 @@ export class FlowsDescription extends Routes {
     }
 
     async getFlowDescription(req: ValidatedRequest<ParamsSchema<GetFlowDescriptionPathParams>>, res: Response<string>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         res.json(flow?.description)
     }
 
     async putFlowDescription(req: ValidatedRequest<ParamsBodySchema<PutFlowDescriptionPathParams, string>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
@@ -56,7 +56,7 @@ export class FlowsDescription extends Routes {
     }
 
     async deleteFlowDescription(req: ValidatedRequest<ParamsSchema<DeleteFlowDescriptionPathParams>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');

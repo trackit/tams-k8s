@@ -10,8 +10,6 @@ import {
   sourceLabelBodyValidator,
 } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
 import { Routes } from "./generic";
 import {
   NotFoundHttpError,
@@ -19,10 +17,14 @@ import {
   ParamsSchema,
   validator,
 } from "./middlewares";
+import { sourceRepositoryToken } from "../repository";
+import { inject } from "../di";
 
 export class SourcesLabel extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
-    super(repositories, backends);
+  private readonly repository = inject(sourceRepositoryToken);
+
+  constructor() {
+    super();
 
     this.route.get<any, string>(
       "/:sourceId/label",
@@ -47,8 +49,7 @@ export class SourcesLabel extends Routes {
     req: ValidatedRequest<ParamsSchema<GetSourceLabelPathParams>>,
     res: Response<string>
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(
         `Source "${req.params.sourceId}" could not be found`
@@ -66,14 +67,13 @@ export class SourcesLabel extends Routes {
     >,
     res: Response<void>
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(
         `Source "${req.params.sourceId}" could not be found`
       );
     source.label = req.body.value;
-    await sourceRepository.putSource(source);
+    await this.repository.putSource(source);
     res.sendStatus(204);
   }
 
@@ -81,14 +81,13 @@ export class SourcesLabel extends Routes {
     req: ValidatedRequest<ParamsSchema<DeleteSourceLabelPathParams>>,
     res: Response<void>
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(
         `Source "${req.params.sourceId}" could not be found`
       );
     source.label = undefined;
-    await sourceRepository.putSource(source);
+    await this.repository.putSource(source);
     res.sendStatus(204);
   }
 }

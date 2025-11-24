@@ -39,14 +39,14 @@ export class FlowsLabel extends Routes {
     }
 
     async getFlowLabel(req: ValidatedRequest<ParamsSchema<GetFlowLabelPathParams>>, res: Response<string>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         res.json(flow?.label)
     }
 
     async putFlowLabel(req: ValidatedRequest<ParamsBodySchema<PutFlowLabelPathParams, string>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
@@ -57,7 +57,7 @@ export class FlowsLabel extends Routes {
     }
 
     async deleteFlowLabel(req: ValidatedRequest<ParamsSchema<DeleteFlowLabelPathParams>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');

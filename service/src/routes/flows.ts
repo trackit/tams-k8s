@@ -86,7 +86,7 @@ export class FlowsRoutes extends Routes {
     }
 
     private async listFlows(req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>, res: Response<Flow[]>) {
-        const flowRepo = this.repositories.getFlowRepository();
+        const flowRepo = this.repositories!.getFlowRepository();
         const tags: Record<string, string> = {};
         const haveTags: string[] = [];
         const doesNotHaveTags: string[] = [];
@@ -133,7 +133,7 @@ export class FlowsRoutes extends Routes {
 
     // TODO(arthur): implement query params (timerange and include_timerange)
     private async getFlow(req: ValidatedRequest<ParamsQSSchema<GetFlowPathParams, GetFlowQueryParamsRequest>>, res: Response<Flow>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError('Flow could not be found');
         res.json(FlowAdapter.toApi(flow));
@@ -143,7 +143,7 @@ export class FlowsRoutes extends Routes {
         if (req.params.flowId !== req.body.id) {
             throw new BadRequestHttpError('flow ID does not match URL parameter');
         }
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const currentFlow = await flowRepository.getFlowById(req.params.flowId);
         const flowToPut = FlowAdapter.fromApi(req.body);
         const now = new Date();

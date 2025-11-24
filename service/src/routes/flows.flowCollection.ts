@@ -40,14 +40,14 @@ export class FlowsFlowCollection extends Routes {
     }
 
     async getFlowFlowCollection(req: ValidatedRequest<ParamsSchema<GetFlowFlowCollectionPathParams>>, res: Response<FlowCollectionItem[]>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         res.json(FlowAdapter.toApiFlowCollection(flow.flowCollection ?? []));
     }
 
     async putFlowFlowCollection(req: ValidatedRequest<ParamsBodySchema<PutFlowFlowCollectionPathParams, FlowCollectionItem[]>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
@@ -58,7 +58,7 @@ export class FlowsFlowCollection extends Routes {
     }
 
     async deleteFlowFlowCollection(req: ValidatedRequest<ParamsSchema<DeleteFlowFlowCollectionPathParams>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');

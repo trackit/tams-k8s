@@ -38,14 +38,14 @@ export class FlowsMaxBitRate extends Routes {
     }
 
     async getFlowMaxBitRate(req: ValidatedRequest<ParamsSchema<GetFlowMaxBitRatePathParams>>, res: Response<number>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         res.json(flow?.maxBitRate);
     }
 
     async putFlowMaxBitRate(req: ValidatedRequest<ParamsBodySchema<PutFlowMaxBitRatePathParams, number>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');
@@ -56,7 +56,7 @@ export class FlowsMaxBitRate extends Routes {
     }
 
     async deleteFlowMaxBitRate(req: ValidatedRequest<ParamsSchema<DeleteFlowMaxBitRatePathParams>>, res: Response<void>) {
-        const flowRepository = this.repositories.getFlowRepository();
+        const flowRepository = this.repositories!.getFlowRepository();
         const flow = await flowRepository.getFlowById(req.params.flowId);
         if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
         if (flow.readOnly === true) throw new ForbiddenHttpError('Flow is in read only mode');

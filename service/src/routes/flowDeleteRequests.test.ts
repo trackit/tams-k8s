@@ -1,23 +1,47 @@
 import { describe, expect, test } from "vitest";
-import { RepositoriesBuilder } from "../builder";
-import { BackendManager } from "../../backend/manager";
-import { setUpApp } from "../../setUpApp";
+import { RepositoriesBuilder } from "../repository/builder";
+import { BackendManager } from "../backend/manager";
+import { setUpApp } from "../setUpApp";
 import request from "supertest";
-import { FlowDeleteRequestMother } from "api/models/flowDeleteRequest.body.mother";
+import { FlowDeleteRequestMother } from "../api/models/flowDeleteRequest.body.mother";
+import { inject, register, reset } from "../di";
+import {
+  flowDeleteRequestsRepositoryToken,
+  sourceRepositoryToken,
+} from "../repository";
+import {
+  MemoryFlowDeleteRequestsRepository,
+  MemorySourceRepository,
+} from "../repository/memory";
 
-const setUp = () => {
-  const repository = new RepositoriesBuilder({ type: "memory" });
+const registerTestInfrastructure = () => {
+  register(flowDeleteRequestsRepositoryToken, {
+    useClass: MemoryFlowDeleteRequestsRepository,
+  });
+
+  register(sourceRepositoryToken, {
+    useClass: MemorySourceRepository,
+  });
+};
+
+const setup = () => {
+  reset();
+  registerTestInfrastructure();
+  // TODO: Remove after SetupApp refacto
   const app = setUpApp(
-    repository,
-    new BackendManager([{ type: "memory", id: "memory", default: true }]),
+    new RepositoriesBuilder({ type: "memory" }),
+    new BackendManager([{ type: "memory", id: "memory", default: true }])
   );
-  return { app, flowDeleteRequestRepository: repository.getFlowDeleteRequestsRepository() };
+  return {
+    app,
+    flowDeleteRequestRepository: inject(flowDeleteRequestsRepositoryToken),
+  };
 };
 
 describe("Testing using memory repository", () => {
   describe("all flowDeleteRequest", () => {
     test("should return an empty list if no delete-request is found", async () => {
-      const { app } = setUp();
+      const { app } = setup();
       const response = await request(app).get("/flow-delete-requests");
 
       expect(response.status).toBe(200);
@@ -25,7 +49,7 @@ describe("Testing using memory repository", () => {
     });
 
     test("should return at least one stored delete-requests", async () => {
-      const { app, flowDeleteRequestRepository } = setUp();
+      const { app, flowDeleteRequestRepository } = setup();
       const request1 = FlowDeleteRequestMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTimerangeToDelete("0:10_")
@@ -52,31 +76,31 @@ describe("Testing using memory repository", () => {
             timerangeToDelete: "20:30_",
             status: "created",
           }),
-        ]),
+        ])
       );
     });
   });
 
   describe("flowDeleteRequest by id", () => {
     test("should return status code 404 if delete-request doesn't exist", async () => {
-      const { app } = setUp();
+      const { app } = setup();
       const response = await request(app).get(
-        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9",
+        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
 
       expect(response.status).toBe(404);
     });
 
     test("should return the flowDeleteRequest if present", async () => {
-      const { app, flowDeleteRequestRepository } = setUp();
+      const { app, flowDeleteRequestRepository } = setup();
       await flowDeleteRequestRepository.saveFlowDeleteRequest(
         FlowDeleteRequestMother.created()
           .withId("fcbef7e2-a6b2-486d-8f4e-a408504afcf9")
           .withTimerangeToDelete("0:0_")
-          .build(),
+          .build()
       );
       const response = await request(app).get(
-        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9",
+        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
 
       expect(response.status).toBe(200);

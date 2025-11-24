@@ -13,6 +13,7 @@ export class RepositoriesBuilder implements Factory {
 
   private factory: Factory;
 
+  // modify
   constructor(config: DBConfig) {
     this.config = config;
     switch (this.config.type) {

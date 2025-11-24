@@ -1,6 +1,5 @@
 import { Response } from "express";
 import {
-  headSourceDescriptionPathParamsValidator,
   DeleteSourceDescriptionPathParams,
   deleteSourceDescriptionPathParamsValidator,
   GetSourceDescriptionPathParams,
@@ -8,18 +7,19 @@ import {
   getSourceDescriptionPathParamsValidator,
   PutSourceDescriptionPathParams,
   putSourceDescriptionPathParamsValidator,
-  HeadSourceDescriptionPathParams,
   sourceDescriptionBodyValidator,
 } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
 import { Routes } from "./generic";
 import { NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from "./middlewares";
+import { sourceRepositoryToken } from "../repository";
+import { inject } from "../di";
 
 export class SourcesDescription extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
-    super(repositories, backends);
+  private readonly repository = inject(sourceRepositoryToken);
+  
+  constructor() {
+    super();
 
     this.route.get<any, string>(
       "/:sourceId/description",
@@ -44,8 +44,7 @@ export class SourcesDescription extends Routes {
     req: ValidatedRequest<ParamsSchema<GetSourceDescriptionPathParams>>,
     res: Response<string>,
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
     res.json(source?.description);
@@ -55,12 +54,11 @@ export class SourcesDescription extends Routes {
     req: ValidatedRequest<ParamsBodySchema<PutSourceDescriptionPathParams, {value: string}>>,
     res: Response<void>,
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
     source.description = req.body.value;
-    await sourceRepository.putSource(source);
+    await this.repository.putSource(source);
     res.sendStatus(204);
   }
 
@@ -68,12 +66,11 @@ export class SourcesDescription extends Routes {
     req: ValidatedRequest<ParamsSchema<DeleteSourceDescriptionPathParams>>,
     res: Response<void>,
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
+    const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError(`Source "${req.params.sourceId}" could not be found`);
     source.description = undefined;
-    await sourceRepository.putSource(source);
+    await this.repository.putSource(source);
     res.sendStatus(204);
   }
 }

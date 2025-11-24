@@ -43,9 +43,9 @@ export class FlowMediaStorageRoutes extends Routes {
         if (req.body.limit !== undefined && req.body.object_ids !== undefined) {
             throw new BadRequestHttpError('Cannot set both limit and object_ids.');
         }
-        const flowRepo = this.repositories.getFlowRepository();
-        const mediaObjectRepo = this.repositories.getMediaObjectRepository();
-        const backend = req.body.storage_id !== undefined ? this.backends.getBackendById(req.body.storage_id) : this.backends.getDefaultBackend();
+        const flowRepo = this.repositories!.getFlowRepository();
+        const mediaObjectRepo = this.repositories!.getMediaObjectRepository();
+        const backend = req.body.storage_id !== undefined ? this.backends!.getBackendById(req.body.storage_id) : this.backends!.getDefaultBackend();
         if (backend === null) {
             throw new BadRequestHttpError('Storage backend not found.');
         }

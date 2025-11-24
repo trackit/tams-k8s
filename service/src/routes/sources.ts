@@ -4,19 +4,15 @@ import {
   Source,
   sourceValidator,
   sourcesValidator,
-  HeadSourcePathParams,
   GetSourcePathParams,
   getSourcePathParamsValidator,
   GetSourcesQueryParamsRequest,
   listSourcesQueryParamsValidator,
-  HeadSourcesQueryParamsRequest,
 } from "@tams-k8s/api";
 import { SourcesDescription } from "./sources.description";
 import { SourcesLabel } from "./sources.label";
 import { SourcesTags } from "./sources.tags";
-import { BackendManager } from "../backend/manager";
 import { SourceAdapter } from "../repository/adapters/source.adapter";
-import { RepositoriesBuilder } from "../repository/builder";
 import { Routes } from "./generic";
 import {
   BadRequestHttpError,
@@ -25,27 +21,31 @@ import {
   QSSchema,
   validator,
 } from "./middlewares";
-import { InvalidPageTokenError } from "repository/errors";
+import { InvalidPageTokenError } from "../repository/errors";
+import { sourceRepositoryToken } from "../repository";
+import { inject } from "../di";
 
 export class SourcesRoutes extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
-    super(repositories, backends);
+  private readonly repository = inject(sourceRepositoryToken);
 
-    const sourcesDescriptionRoutes = new SourcesDescription(repositories, backends);
-    const sourcesLabelRoutes = new SourcesLabel(repositories, backends);
-    const sourcesTagsRoutes = new SourcesTags(repositories, backends);
+  constructor() {
+    super();
+
+    const sourcesDescriptionRoutes = new SourcesDescription();
+    const sourcesLabelRoutes = new SourcesLabel();
+    const sourcesTagsRoutes = new SourcesTags();
 
     this.route.get(
       "/",
       validator.query(listSourcesQueryParamsValidator),
       validator.response(sourcesValidator),
-      this.listSources.bind(this),
+      this.listSources.bind(this)
     );
     this.route.get<any, Source>(
       "/:sourceId",
       validator.params(getSourcePathParamsValidator),
       validator.response(sourceValidator.required()),
-      this.getSource.bind(this),
+      this.getSource.bind(this)
     );
     this.route.use(sourcesDescriptionRoutes.getRoutes());
     this.route.use(sourcesLabelRoutes.getRoutes());
@@ -54,7 +54,7 @@ export class SourcesRoutes extends Routes {
 
   private buildNextPageUrl(
     req: ValidatedRequest<QSSchema<GetSourcesQueryParamsRequest>>,
-    nextPageToken: string,
+    nextPageToken: string
   ): string {
     const url = new URL(`${req.protocol}://${req.host}${req.originalUrl}`);
     url.searchParams.set("page", nextPageToken);
@@ -63,9 +63,8 @@ export class SourcesRoutes extends Routes {
 
   private async listSources(
     req: ValidatedRequest<QSSchema<GetSourcesQueryParamsRequest>>,
-    res: Response<Source[]>,
+    res: Response<Source[]>
   ) {
-    const sourceRepo = this.repositories.getSourceRepository();
     const tags: Record<string, string> = {};
     const haveTags: string[] = [];
     const doesNotHaveTags: string[] = [];
@@ -80,7 +79,7 @@ export class SourcesRoutes extends Routes {
     });
 
     try {
-      const list = await sourceRepo.listSources({
+      const list = await this.repository.listSources({
         label: req.query.label,
         format: req.query.format,
         page: req.query.page,
@@ -90,13 +89,17 @@ export class SourcesRoutes extends Routes {
         doesNotHaveTags,
       });
 
-      if (list.limit !== undefined) res.setHeader("X-Paging-Limit", list.limit.toString());
+      if (list.limit !== undefined)
+        res.setHeader("X-Paging-Limit", list.limit.toString());
       if (list.nextPageToken !== undefined) {
         res.setHeader("X-Paging-NextKey", list.nextPageToken);
-        res.setHeader("Link", `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`);
+        res.setHeader(
+          "Link",
+          `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`
+        );
       }
 
-      res.json(list.sources.map(source => SourceAdapter.toApi(source)));
+      res.json(list.sources.map((source) => SourceAdapter.toApi(source)));
     } catch (e) {
       if (e instanceof InvalidPageTokenError) {
         throw new BadRequestHttpError(e.message);
@@ -107,11 +110,11 @@ export class SourcesRoutes extends Routes {
 
   private async getSource(
     req: ValidatedRequest<ParamsSchema<GetSourcePathParams>>,
-    res: Response<Source>,
+    res: Response<Source>
   ) {
-    const sourceRepository = this.repositories.getSourceRepository();
-    const source = await sourceRepository.getSourceById(req.params.sourceId);
-    if (source === null) throw new NotFoundHttpError("Source could not be found");
+    const source = await this.repository.getSourceById(req.params.sourceId);
+    if (source === null)
+      throw new NotFoundHttpError("Source could not be found");
     res.json(SourceAdapter.toApi(source));
   }
 }

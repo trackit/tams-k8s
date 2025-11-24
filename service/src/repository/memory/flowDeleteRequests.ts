@@ -1,7 +1,7 @@
 import type { FlowDeleteRequest } from "@tams-k8s/api";
-import { FlowDeleteRequestsRepository } from "repository/flowDeleteRequests";
+import { FlowDeleteRequestsRepository } from "../index";
 
-export class MemoryFlowDeleteRequestsImpl implements FlowDeleteRequestsRepository {
+export class MemoryFlowDeleteRequestsRepository implements FlowDeleteRequestsRepository {
   private readonly flowDeleteRequests: FlowDeleteRequest[];
 
   constructor() {

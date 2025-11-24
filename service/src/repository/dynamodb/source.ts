@@ -1,5 +1,6 @@
 import {
   AttributeValue,
+  CreateTableCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -7,23 +8,47 @@ import {
   ScanCommandInput,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { DynamoDBConfig } from "../../configParser";
 import type {
   ListSourcesFilters,
   Source,
   SourceCollectionItem,
   SourceRepository,
   ListSourcesResponse,
-} from "../source";
-import { InvalidPageTokenError } from "repository/errors";
+} from "../../repository";
+import { InvalidPageTokenError } from "../../repository/errors";
+import { createInjectionToken, inject } from "../../di";
+import { dynamodbClientToken, dynamodbConfigToken } from "./client";
 
-export class DDBSourcesImpl implements SourceRepository {
-  private readonly client: DynamoDBClient;
-  private readonly config: DynamoDBConfig;
+export const SourceTableNameToken = createInjectionToken<string>(
+  "SourceTableName",
+  {
+    useFactory: () => inject(dynamodbConfigToken).sourceTableName,
+  }
+);
 
-  constructor(client: DynamoDBClient, config: DynamoDBConfig) {
-    this.client = client;
-    this.config = config;
+export class DDBSourcesRepository implements SourceRepository {
+  private readonly client: DynamoDBClient = inject(dynamodbClientToken);
+  private readonly tableName = inject(SourceTableNameToken);
+
+  public async createTable() {
+    await this.client.send(
+      new CreateTableCommand({
+        TableName: this.tableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "id",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "id",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
   }
 
   private encodePageToken(
@@ -126,7 +151,7 @@ export class DDBSourcesImpl implements SourceRepository {
     });
 
     const scanParams: ScanCommandInput = {
-      TableName: this.config.sourceTableName,
+      TableName: this.tableName,
       FilterExpression:
         filterExpr.length === 0 ? undefined : filterExpr.join(" AND "),
       ExpressionAttributeNames:
@@ -164,7 +189,7 @@ export class DDBSourcesImpl implements SourceRepository {
   async getSourceById(sourceId: string): Promise<Source | null> {
     const result = await this.client.send(
       new GetItemCommand({
-        TableName: this.config.sourceTableName,
+        TableName: this.tableName,
         Key: {
           id: {
             S: sourceId,
@@ -179,7 +204,7 @@ export class DDBSourcesImpl implements SourceRepository {
   async putSource(source: Source): Promise<Source> {
     await this.client.send(
       new PutItemCommand({
-        TableName: this.config.sourceTableName,
+        TableName: this.tableName,
         ReturnValues: "NONE",
         Item: this.sourceToRecord(source),
       })
