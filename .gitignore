@@ -5,5 +5,7 @@ dist
 k8s-controller/k8s-controller
 k8s-controller/vendor
 
+service/coverage
+
 secret.yaml
 .prettierrc

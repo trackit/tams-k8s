@@ -17,6 +17,7 @@ import { BackendManager } from '../backend/manager';
 import { FlowAdapter } from '../repository/adapters/flow.adapter';
 import { RepositoriesBuilder } from '../repository/builder';
 import { InvalidPageTokenError } from '../repository/errors';
+import { Factory } from '../repository/factory';
 import { FlowsAvgBitRate } from './flows.avgBitRate';
 import { FlowsDescription } from './flows.description';
 import { FlowsFlowCollection } from './flows.flowCollection';
@@ -37,7 +38,7 @@ import {
 import { Routes } from './generic';
 
 export class FlowsRoutes extends Routes {
-    constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+    constructor(repositories: Factory, backends: BackendManager) {
         super(repositories, backends);
 
         const flowTagsRoutes = new FlowsTags(repositories, backends);

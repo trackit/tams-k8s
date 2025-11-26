@@ -1,3 +1,4 @@
+import { MediaObject } from '../mediaObjects';
 import type {
   ListSourcesFilters,
   Source,
@@ -10,8 +11,8 @@ import { InvalidPageTokenError } from "../errors";
 export class MemorySourceImpl implements SourceRepository {
   private readonly sources: Source[];
 
-  constructor() {
-    this.sources = [];
+  constructor(initialSources?: Source[]) {
+    this.sources = initialSources ?? [];
   }
 
   private encodePageToken(sourceId: string) {
@@ -26,6 +27,10 @@ export class MemorySourceImpl implements SourceRepository {
     } catch (e) {
       throw new InvalidPageTokenError();
     }
+  }
+
+  getInternal(): Source[] {
+      return this.sources;
   }
 
   async listSources(

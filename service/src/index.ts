@@ -3,13 +3,14 @@ import { log } from '@tams-k8s/logger';
 import { BackendManager } from './backend/manager';
 import { ConfigReader } from './configParser/reader';
 import { RepositoriesBuilder } from './repository/builder';
+import { Factory } from './repository/factory';
 import { bodyParser, errorHandler, validationHelper } from './routes/middlewares';
 import { FlowsRoutes, RootRoutes, ServiceRoutes } from './routes';
 import { SourcesRoutes } from 'routes/sources';
 
 const config = new ConfigReader().getCachedConfig();
 
-const main = async () => {
+export const setupExpressApp = (repositories: Factory, backends: BackendManager) => {
     const app = express();
     app.disable('x-powered-by');
     app.set('trust proxy', true);
@@ -18,12 +19,7 @@ const main = async () => {
     // enable receiving json
     app.use(bodyParser);
 
-    const backends = new BackendManager(config.backends);
-    await backends.initialize();
-
-    const repositories = new RepositoriesBuilder(config.database);
-    await repositories.initialize();
-
+    // setup routes
     const rootRoutes = new RootRoutes(repositories, backends);
     app.use('/', rootRoutes.getRoutes());
 
@@ -38,6 +34,18 @@ const main = async () => {
 
     app.use(validationHelper);
     app.use(errorHandler);
+
+    return app;
+}
+
+const main = async () => {
+    const backends = new BackendManager(config.backends);
+    await backends.initialize();
+
+    const repositories = new RepositoriesBuilder(config.database);
+    await repositories.initialize();
+
+    const app = setupExpressApp(repositories, backends);
 
     app.listen(config.server.port, () => log.info(`Server is running on port ${config.server.port}`));
 };

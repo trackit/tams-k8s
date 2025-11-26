@@ -4,6 +4,7 @@ import { ValidatedRequest } from 'express-joi-validation';
 import { GetServiceResponse, StorageBackends, PostServiceRequest, storageBackendsValidator } from '@tams-k8s/api';
 import { BackendManager } from '../backend/manager';
 import { RepositoriesBuilder } from '../repository/builder';
+import { Factory } from '../repository/factory';
 import { Routes } from './generic';
 import { BodySchema, validator } from './middlewares';
 
@@ -13,7 +14,7 @@ const updateServiceRequestValidator = Joi.object<PostServiceRequest>({
 }).required();
 
 export class ServiceRoutes extends Routes {
-    constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+    constructor(repositories: Factory, backends: BackendManager) {
         super(repositories, backends);
 
         this.route.get('/', this.get.bind(this));

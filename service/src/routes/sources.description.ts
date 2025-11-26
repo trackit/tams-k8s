@@ -13,11 +13,12 @@ import {
 import { ValidatedRequest } from "express-joi-validation";
 import { BackendManager } from "../backend/manager";
 import { RepositoriesBuilder } from "../repository/builder";
+import { Factory } from '../repository/factory';
 import { Routes } from "./generic";
 import { NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from "./middlewares";
 
 export class SourcesDescription extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
+  constructor(repositories: Factory, backends: BackendManager) {
     super(repositories, backends);
 
     this.route.get<any, string>(
