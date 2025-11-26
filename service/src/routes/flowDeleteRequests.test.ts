@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { RepositoriesBuilder } from "../repository/builder";
 import { BackendManager } from "../backend/manager";
-import { setUpApp } from "../setUpApp";
+import { setupApp } from "../setupApp";
 import request from "supertest";
 import { FlowDeleteRequestMother } from "../api/models/flowDeleteRequest.body.mother";
 import { inject, register, reset } from "../di";
@@ -15,19 +15,18 @@ import {
   MemoryServiceRepository,
   MemorySourceRepository,
 } from "../repository/memory";
-import { registerInfra } from "registerInfra";
 
 const registerTestInfrastructure = () => {
   register(flowDeleteRequestsRepositoryToken, {
-    useClass: MemoryFlowDeleteRequestsRepository,
+    useValue: new MemoryFlowDeleteRequestsRepository(),
   });
 
   register(sourceRepositoryToken, {
-    useClass: MemorySourceRepository,
+    useValue: new MemorySourceRepository(),
   });
 
   register(serviceRepositoryToken, {
-    useClass: MemoryServiceRepository,
+    useValue: new MemoryServiceRepository(),
   });
 };
 
@@ -36,7 +35,7 @@ const setup = () => {
   registerTestInfrastructure();
 
   // TODO: Remove after SetupApp refacto
-  const app = setUpApp(
+  const app = setupApp(
     new RepositoriesBuilder({ type: "memory" }),
     new BackendManager([{ type: "memory", id: "memory", default: true }])
   );

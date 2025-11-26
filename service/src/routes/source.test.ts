@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from "vitest";
 import { RepositoriesBuilder } from "../repository/builder";
 import { BackendManager } from "../backend/manager";
-import { setUpApp } from "../setUpApp";
+import { setupApp } from "../setupApp";
 import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "@tams-k8s/api";
 import { inject, register, reset } from "../di";
@@ -19,15 +19,15 @@ import {
 
 const registerTestInfrastructure = () => {
   register(sourceRepositoryToken, {
-    useClass: MemorySourceRepository,
+    useValue: new MemorySourceRepository(),
   });
 
   register(flowDeleteRequestsRepositoryToken, {
-    useClass: MemoryFlowDeleteRequestsRepository,
+    useValue: new MemoryFlowDeleteRequestsRepository(),
   });
 
   register(serviceRepositoryToken, {
-    useClass: MemoryServiceRepository,
+    useValue: new MemoryServiceRepository(),
   });
 };
 
@@ -36,7 +36,7 @@ const setUp = () => {
   registerTestInfrastructure();
 
   // TODO: Remove after SetupApp refacto
-  const app = setUpApp(
+  const app = setupApp(
     new RepositoriesBuilder({ type: "memory" }),
     new BackendManager([{ type: "memory", id: "memory", default: true }])
   );

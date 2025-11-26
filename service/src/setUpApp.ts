@@ -2,10 +2,10 @@ import { bodyParser, errorHandler, validationHelper } from "./routes/middlewares
 import { FlowsRoutes, RootRoutes, ServiceRoutes, FlowDeleteRequestsRoutes } from "./routes";
 import express from "express";
 import { BackendManager } from "./backend/manager";
-import { RepositoriesBuilder } from "./repository/builder";
 import { SourcesRoutes } from "./routes/sources";
+import { Factory } from "repository";
 
-export const setUpApp = (repositories: RepositoriesBuilder, backends: BackendManager) => {
+export const setupApp = (repositories: Factory, backends: BackendManager) => {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", true);

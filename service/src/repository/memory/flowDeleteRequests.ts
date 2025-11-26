@@ -4,8 +4,12 @@ import { FlowDeleteRequestsRepository } from "../index";
 export class MemoryFlowDeleteRequestsRepository implements FlowDeleteRequestsRepository {
   private readonly flowDeleteRequests: FlowDeleteRequest[];
 
-  constructor() {
-    this.flowDeleteRequests = [];
+  constructor(initialFlowDeleteRequests?: FlowDeleteRequest[]) {
+    this.flowDeleteRequests = initialFlowDeleteRequests ?? [];
+  }
+
+  getInternal(): FlowDeleteRequest[] {
+    return this.flowDeleteRequests;
   }
 
   async listFlowDeleteRequest(): Promise<FlowDeleteRequest[]> {

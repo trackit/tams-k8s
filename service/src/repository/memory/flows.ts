@@ -6,8 +6,8 @@ import type { Flow, FlowRepository, ListFlowsFilters, ListFlowsResponse } from '
 export class MemoryFlowsImpl implements FlowRepository {
     private readonly flows: Flow[];
 
-    constructor() {
-        this.flows = [];
+    constructor(initialFlows?: Flow[]) {
+        this.flows = initialFlows ?? [];
     }
 
     private encodePageToken(flowId: string) {
@@ -22,6 +22,10 @@ export class MemoryFlowsImpl implements FlowRepository {
         } catch (e) {
             throw new InvalidPageTokenError();
         }
+    }
+
+    public getInternal(): Flow[] {
+        return this.flows;
     }
 
     // TODO(arthur): implement timerange filtering

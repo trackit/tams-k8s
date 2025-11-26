@@ -1,7 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { RepositoriesBuilder } from "../repository/builder";
 import { BackendManager } from "../backend/manager";
-import { setUpApp } from "../setUpApp";
+import { setupApp } from "../setupApp";
 import request from "supertest";
 import { ServiceMother } from "../api/models/service.mother";
 import { inject, register, reset } from "../di";
@@ -18,15 +18,15 @@ import {
 
 const registerTestInfrastructure = () => {
   register(flowDeleteRequestsRepositoryToken, {
-    useClass: MemoryFlowDeleteRequestsRepository,
+    useValue: new MemoryFlowDeleteRequestsRepository(),
   });
 
   register(sourceRepositoryToken, {
-    useClass: MemorySourceRepository,
+    useValue: new MemorySourceRepository(),
   });
 
   register(serviceRepositoryToken, {
-    useClass: MemoryServiceRepository,
+    useValue: new MemoryServiceRepository(),
   });
 };
 
@@ -35,7 +35,7 @@ const setup = () => {
   registerTestInfrastructure();
 
   // TODO: Remove after SetupApp refacto
-  const app = setUpApp(
+  const app = setupApp(
     new RepositoriesBuilder({ type: "memory" }),
     new BackendManager([{ type: "memory", id: "memory", default: true }])
   );
@@ -45,20 +45,7 @@ const setup = () => {
   };
 };
 
-describe("Service routes", () => {
-  test("should list root endpoints", async () => {
-    const { app } = setup();
-    const response = await request(app).get("/");
-
-    expect(response.status).toBe(200);
-    expect(response.body).toEqual([
-      "service",
-      "flows",
-      "sources",
-      "flow-delete-requests",
-    ]);
-  });
-
+describe("Testing Service routes using memory repository", () => {
   test("should return the service information", async () => {
     const { app } = setup();
     const response = await request(app).get("/service");

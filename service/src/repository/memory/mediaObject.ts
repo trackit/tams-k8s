@@ -3,8 +3,12 @@ import { MediaObject, MediaObjectsRepository } from '../mediaObjects';
 export class MemoryMediaObjectImpl implements MediaObjectsRepository {
     private readonly mediaObjects: MediaObject[] = [];
 
-    constructor() {
-        this.mediaObjects = [];
+    constructor(initialMediaObjects?: MediaObject[]) {
+        this.mediaObjects = initialMediaObjects ?? [];
+    }
+
+    public getInternal(): MediaObject[] {
+        return this.mediaObjects;
     }
 
     async getMediaObjectById(id: string): Promise<MediaObject | null> {

@@ -3,11 +3,15 @@ import { Service, ServiceRepository, ServiceUpdate } from "../service";
 export class MemoryServiceRepository implements ServiceRepository {
     private service: Service;
 
-    constructor() {
-        this.service = {
+    constructor(initialService?: Service) {
+        this.service = initialService ?? {
             name: '',
             description: ''
         }
+    }
+
+    getInternal(): Service {
+        return this.service;
     }
 
     getService(): Promise<Service> {

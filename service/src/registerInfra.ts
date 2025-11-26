@@ -37,13 +37,13 @@ const registerDynamoInfra = () => {
 
 const registerMemoryInfra = () => {
   register(flowDeleteRequestsRepositoryToken, {
-    useClass: MemoryFlowDeleteRequestsRepository,
+    useValue: new MemoryFlowDeleteRequestsRepository(),
   });
   register(sourceRepositoryToken, {
-    useClass: MemorySourceRepository,
+    useValue: new MemorySourceRepository(),
   });
   register(serviceRepositoryToken, {
-    useClass: MemoryServiceRepository,
+    useValue: new MemoryServiceRepository(),
   });
 };
 
