@@ -1,7 +1,9 @@
 import type { FlowDeleteRequest } from "@tams-k8s/api";
 import { FlowDeleteRequestsRepository } from "../index";
 
-export class MemoryFlowDeleteRequestsRepository implements FlowDeleteRequestsRepository {
+export class MemoryFlowDeleteRequestsRepository
+  implements FlowDeleteRequestsRepository
+{
   private readonly flowDeleteRequests: FlowDeleteRequest[];
 
   constructor(initialFlowDeleteRequests?: FlowDeleteRequest[]) {
@@ -16,10 +18,13 @@ export class MemoryFlowDeleteRequestsRepository implements FlowDeleteRequestsRep
     return this.flowDeleteRequests;
   }
 
-  async getFlowDeleteRequestById(flowDeleteRequestId: string): Promise<FlowDeleteRequest | null> {
+  async getFlowDeleteRequestById(
+    flowDeleteRequestId: string
+  ): Promise<FlowDeleteRequest | null> {
     return (
       this.flowDeleteRequests.find(
-        ({ id: findFlowDeleteRequestId }) => findFlowDeleteRequestId === flowDeleteRequestId,
+        ({ id: findFlowDeleteRequestId }) =>
+          findFlowDeleteRequestId === flowDeleteRequestId
       ) ?? null
     );
   }

@@ -1,197 +1,245 @@
-import { AttributeValue, DynamoDBClient, GetItemCommand, PutItemCommand, ScanCommand } from "@aws-sdk/client-dynamodb";
+import {
+  AttributeValue,
+  DynamoDBClient,
+  GetItemCommand,
+  PutItemCommand,
+  ScanCommand,
+} from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import Joi from 'joi';
-import { DynamoDBConfig } from "../../configParser";
-import { InvalidPageTokenError } from '../errors';
+import Joi from "joi";
+import { InvalidPageTokenError } from "../errors";
 import type {
-    ContainerMapping,
-    Flow,
-    FlowCollectionItem,
-    FlowRepository,
-    ListFlowsFilters,
-    ListFlowsResponse
-} from '../flows.js';
+  ContainerMapping,
+  Flow,
+  FlowCollectionItem,
+  FlowRepository,
+  ListFlowsFilters,
+  ListFlowsResponse,
+} from "../flows.js";
+import { createInjectionToken, inject } from "../../di";
+import { dynamodbClientToken, dynamodbConfigToken } from "./client";
 
-export class DDBFlowsImpl implements FlowRepository {
-    private readonly client: DynamoDBClient;
-    private readonly config: DynamoDBConfig;
+export const FlowTableNameToken = createInjectionToken<string>(
+  "FlowTableName",
+  {
+    useFactory: () => inject(dynamodbConfigToken).flowTableName,
+  }
+);
 
-    constructor(client: DynamoDBClient, config: DynamoDBConfig) {
-        this.client = client;
-        this.config = config;
+export class DDBFlowsRepository implements FlowRepository {
+  private readonly client: DynamoDBClient = inject(dynamodbClientToken);
+  private readonly tableName = inject(FlowTableNameToken);
+
+  private containerMappingRecordToContainerMapping(
+    data: Record<string, any>
+  ): ContainerMapping {
+    return {
+      trackIndex: data.trackIndex,
+      formatTrackIndex: data.formatTrackIndex,
+      audioTrack: data.audioTrack
+        ? {
+            channelNumbers: data.audioTrack.channelNumbers,
+            channelRange: data.audioTrack.channelRange,
+          }
+        : undefined,
+      mp2tsContainer: data.mp2tsContainer
+        ? {
+            pid: data.mp2tsContainer.pid,
+          }
+        : undefined,
+      mxfContainer: data.mxfContainer
+        ? {
+            packageUid: data.mxfContainer.packageUid,
+            trackId: data.mxfContainer.trackId,
+          }
+        : undefined,
+      isobmffContainer: data.isobmffContainer
+        ? {
+            trackId: data.isobmffContainer.trackId,
+          }
+        : undefined,
+    };
+  }
+
+  private flowCollectionItemRecordToFlowCollectionItem(
+    data: Record<string, any>
+  ): FlowCollectionItem {
+    return {
+      id: data.id,
+      role: data.role,
+      containerMapping: data.containerMapping
+        ? this.containerMappingRecordToContainerMapping(data.containerMapping)
+        : undefined,
+    };
+  }
+
+  private flowToRecord(flow: Flow): Record<string, AttributeValue> {
+    return marshall(
+      {
+        ...flow,
+        created: flow.created?.toString(),
+        metadataUpdated: flow.metadataUpdated?.toString(),
+        segmentsUpdated: flow.segmentsUpdated?.toString(),
+      },
+      { removeUndefinedValues: true }
+    );
+  }
+
+  private recordToFlow(record: Record<string, AttributeValue>): Flow {
+    const data = unmarshall(record);
+    return {
+      flowId: data.flowId,
+      sourceId: data.sourceId,
+      label: data.label,
+      description: data.description,
+      createdBy: data.createdBy,
+      updatedBy: data.updatedBy,
+      tags: data.tags,
+      metadataVersion: data.metadataVersion,
+      generation: data.generation,
+      created: data.created ? new Date(data.created) : undefined,
+      metadataUpdated: data.metadataUpdated
+        ? new Date(data.metadataUpdated)
+        : undefined,
+      segmentsUpdated: data.segmentsUpdated
+        ? new Date(data.segmentsUpdated)
+        : undefined,
+      readOnly: data.readOnly,
+      codec: data.codec,
+      container: data.container,
+      avgBitRate: data.avgBitRate,
+      maxBitRate: data.maxBitRate,
+      segmentDuration: data.segmentDuration,
+      timerange: data.timerange,
+      flowCollection: data.flowCollection?.map((item: Record<string, any>) =>
+        this.flowCollectionItemRecordToFlowCollectionItem(item)
+      ),
+      collectedBy: data.collectedBy,
+      containerMapping: data.containerMapping
+        ? this.containerMappingRecordToContainerMapping(data.containerMapping)
+        : undefined,
+      format: data.format,
+      essenceParameters: data.essenceParameters,
+    };
+  }
+
+  private recordsToFlow(records: Record<string, AttributeValue>[]) {
+    return records.map((record) => this.recordToFlow(record));
+  }
+
+  private encodePageToken(flowId: string) {
+    return Buffer.from(flowId, "utf8").toString("base64url");
+  }
+
+  private decodePageToken(pageToken: string) {
+    try {
+      const decoded = Buffer.from(pageToken, "base64url").toString("utf8");
+      Joi.assert(decoded, Joi.string().uuid().required());
+      return decoded;
+    } catch (e) {
+      throw new InvalidPageTokenError();
     }
+  }
 
-    private containerMappingRecordToContainerMapping(data: Record<string, any>): ContainerMapping {
-        return {
-            trackIndex: data.trackIndex,
-            formatTrackIndex: data.formatTrackIndex,
-            audioTrack: data.audioTrack ? ({
-                channelNumbers: data.audioTrack.channelNumbers,
-                channelRange: data.audioTrack.channelRange,
-            }) : undefined,
-            mp2tsContainer: data.mp2tsContainer ? ({
-                pid: data.mp2tsContainer.pid,
-            }) : undefined,
-            mxfContainer: data.mxfContainer ? ({
-                packageUid: data.mxfContainer.packageUid,
-                trackId: data.mxfContainer.trackId,
-            }) : undefined,
-            isobmffContainer: data.isobmffContainer ? ({
-                trackId: data.isobmffContainer.trackId,
-            }) : undefined,
-        }
+  // TODO(arthur): implement timerange filtering
+  async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
+    let filterExpr: string[] = [];
+    const exprAttrVal: Record<string, AttributeValue> = {};
+    const exprAttrNames: Record<string, string> = {};
+    let nameInc = 0;
+    let exclusiveStartKey: Record<string, AttributeValue> | undefined =
+      undefined;
+    if (filters?.pageToken) {
+      const decoded = this.decodePageToken(filters.pageToken);
+      exclusiveStartKey = marshall({ flowId: decoded });
     }
+    if (filters?.sourceId) {
+      filterExpr.push("sourceId = :sourceId");
+      exprAttrVal[":sourceId"] = { S: filters.sourceId };
+    }
+    if (filters?.flowFormat) {
+      filterExpr.push("flowFormat = :format");
+      exprAttrVal[":format"] = { S: filters.flowFormat };
+    }
+    if (filters?.codec) {
+      filterExpr.push("codec = :codec");
+      exprAttrVal[":codec"] = { S: filters.codec };
+    }
+    if (filters?.label) {
+      filterExpr.push("label = :label");
+      exprAttrVal[":label"] = { S: filters.label };
+    }
+    if (filters?.frameWidth) {
+      filterExpr.push("essenceParameters.frameWidth = :frameWidth");
+      exprAttrVal[":frameWidth"] = { N: filters.frameWidth.toString() };
+    }
+    if (filters?.frameHeight) {
+      filterExpr.push("essenceParameters.frameHeight = :frameHeight");
+      exprAttrVal[":frameHeight"] = { N: filters.frameHeight.toString() };
+    }
+    Object.entries(filters?.tags ?? {}).forEach(([key, value]) => {
+      const keyName = `#key${nameInc++}`;
+      filterExpr.push(`tags.${keyName} = :tag_${key}`);
+      exprAttrVal[`:tag_${key}`] = { S: value };
+      exprAttrNames[keyName] = key;
+    });
+    filters?.haveTags?.forEach((key) => {
+      const keyName = `#key${nameInc++}`;
+      filterExpr.push(`attribute_exists(tags.${keyName})`);
+      exprAttrNames[keyName] = key;
+    });
+    filters?.doesNotHaveTags?.forEach((key) => {
+      const keyName = `#key${nameInc++}`;
+      filterExpr.push(`attribute_not_exists(tags.${keyName})`);
+      exprAttrNames[keyName] = key;
+    });
+    const resp = await this.client.send(
+      new ScanCommand({
+        TableName: this.tableName,
+        FilterExpression:
+          filterExpr.length === 0 ? undefined : filterExpr.join(" AND "),
+        ExpressionAttributeNames: Object.keys(exprAttrNames).length
+          ? exprAttrNames
+          : undefined,
+        ExpressionAttributeValues: Object.keys(exprAttrVal).length
+          ? exprAttrVal
+          : undefined,
+        Limit: filters?.limit,
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+    return {
+      flows: !resp.Items ? [] : this.recordsToFlow(resp.Items),
+      limit: filters?.limit,
+      nextPageToken: resp.LastEvaluatedKey?.flowId?.S
+        ? this.encodePageToken(resp.LastEvaluatedKey.flowId.S)
+        : undefined,
+    };
+  }
 
-    private flowCollectionItemRecordToFlowCollectionItem(data: Record<string, any>): FlowCollectionItem {
-        return {
-            id: data.id,
-            role: data.role,
-            containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
-        }
-    }
+  async getFlowById(flowId: string): Promise<Flow | null> {
+    const result = await this.client.send(
+      new GetItemCommand({
+        TableName: this.tableName,
+        Key: {
+          flowId: {
+            S: flowId,
+          },
+        },
+      })
+    );
+    if (!result.Item) return null;
+    return this.recordToFlow(result.Item);
+  }
 
-    private flowToRecord(flow: Flow): Record<string, AttributeValue> {
-        return marshall({
-            ...flow,
-            created: flow.created?.toString(),
-            metadataUpdated: flow.metadataUpdated?.toString(),
-            segmentsUpdated: flow.segmentsUpdated?.toString(),
-        }, { removeUndefinedValues: true });
-    }
-
-    private recordToFlow(record: Record<string, AttributeValue>): Flow {
-        const data = unmarshall(record);
-        return {
-            flowId: data.flowId,
-            sourceId: data.sourceId,
-            label: data.label,
-            description: data.description,
-            createdBy: data.createdBy,
-            updatedBy: data.updatedBy,
-            tags: data.tags,
-            metadataVersion: data.metadataVersion,
-            generation: data.generation,
-            created: data.created ? new Date(data.created) : undefined,
-            metadataUpdated: data.metadataUpdated ? new Date(data.metadataUpdated) : undefined,
-            segmentsUpdated: data.segmentsUpdated ? new Date(data.segmentsUpdated) : undefined,
-            readOnly: data.readOnly,
-            codec: data.codec,
-            container: data.container,
-            avgBitRate: data.avgBitRate,
-            maxBitRate: data.maxBitRate,
-            segmentDuration: data.segmentDuration,
-            timerange: data.timerange,
-            flowCollection: data.flowCollection?.map((item: Record<string, any>) => this.flowCollectionItemRecordToFlowCollectionItem(item)),
-            collectedBy: data.collectedBy,
-            containerMapping: data.containerMapping ? this.containerMappingRecordToContainerMapping(data.containerMapping) : undefined,
-            format: data.format,
-            essenceParameters: data.essenceParameters,
-        }
-    }
-
-    private recordsToFlow(records: Record<string, AttributeValue>[]) {
-        return records.map((record) => this.recordToFlow(record));
-    }
-
-    private encodePageToken(flowId: string) {
-        return Buffer.from(flowId, 'utf8').toString('base64url');
-    }
-
-    private decodePageToken(pageToken: string) {
-        try {
-            const decoded = Buffer.from(pageToken, 'base64url').toString('utf8');
-            Joi.assert(decoded, Joi.string().uuid().required());
-            return decoded;
-        } catch (e) {
-            throw new InvalidPageTokenError();
-        }
-    }
-
-    // TODO(arthur): implement timerange filtering
-    async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
-        let filterExpr: string[] = [];
-        const exprAttrVal: Record<string, AttributeValue> = {};
-        const exprAttrNames: Record<string, string> = {};
-        let nameInc = 0;
-        let exclusiveStartKey: Record<string, AttributeValue> | undefined = undefined;
-        if (filters?.pageToken) {
-            const decoded = this.decodePageToken(filters.pageToken);
-            exclusiveStartKey = marshall({ flowId: decoded });
-        }
-        if (filters?.sourceId) {
-            filterExpr.push('sourceId = :sourceId');
-            exprAttrVal[':sourceId'] = { S: filters.sourceId };
-        }
-        if (filters?.flowFormat) {
-            filterExpr.push('flowFormat = :format');
-            exprAttrVal[':format'] = { S: filters.flowFormat };
-        }
-        if (filters?.codec) {
-            filterExpr.push('codec = :codec');
-            exprAttrVal[':codec'] = { S: filters.codec };
-        }
-        if (filters?.label) {
-            filterExpr.push('label = :label');
-            exprAttrVal[':label'] = { S: filters.label };
-        }
-        if (filters?.frameWidth) {
-            filterExpr.push('essenceParameters.frameWidth = :frameWidth');
-            exprAttrVal[':frameWidth'] = { N: filters.frameWidth.toString() };
-        }
-        if (filters?.frameHeight) {
-            filterExpr.push('essenceParameters.frameHeight = :frameHeight');
-            exprAttrVal[':frameHeight'] = { N: filters.frameHeight.toString() };
-        }
-        Object.entries(filters?.tags ?? {}).forEach(([key, value]) => {
-            const keyName = `#key${nameInc++}`;
-            filterExpr.push(`tags.${keyName} = :tag_${key}`);
-            exprAttrVal[`:tag_${key}`] = { S: value };
-            exprAttrNames[keyName] = key;
-        });
-        filters?.haveTags?.forEach(key => {
-            const keyName = `#key${nameInc++}`;
-            filterExpr.push(`attribute_exists(tags.${keyName})`);
-            exprAttrNames[keyName] = key;
-        });
-        filters?.doesNotHaveTags?.forEach(key => {
-            const keyName = `#key${nameInc++}`;
-            filterExpr.push(`attribute_not_exists(tags.${keyName})`);
-            exprAttrNames[keyName] = key;
-        });
-        const resp = await this.client.send(new ScanCommand({
-            TableName: this.config.flowTableName,
-            FilterExpression: filterExpr.length === 0 ? undefined : filterExpr.join(' AND '),
-            ExpressionAttributeNames: Object.keys(exprAttrNames).length ? exprAttrNames : undefined,
-            ExpressionAttributeValues: Object.keys(exprAttrVal).length ? exprAttrVal : undefined,
-            Limit: filters?.limit,
-            ExclusiveStartKey: exclusiveStartKey
-        }))
-        return {
-            flows: !resp.Items ? [] : this.recordsToFlow(resp.Items),
-            limit: filters?.limit,
-            nextPageToken: resp.LastEvaluatedKey?.flowId?.S ? this.encodePageToken(resp.LastEvaluatedKey.flowId.S) : undefined,
-        };
-    }
-
-    async getFlowById(flowId: string): Promise<Flow | null> {
-        const result = await this.client.send(new GetItemCommand({
-            TableName: this.config.flowTableName,
-            Key: {
-                flowId: {
-                    S: flowId,
-                }
-            }
-        }));
-        if (!result.Item) return null;
-        return this.recordToFlow(result.Item);
-    }
-
-    async putFlow(flow: Flow): Promise<Flow> {
-        await this.client.send(new PutItemCommand({
-            TableName: this.config.flowTableName,
-            ReturnValues: 'NONE',
-            Item: this.flowToRecord(flow),
-        }));
-        return flow;
-    }
+  async putFlow(flow: Flow): Promise<Flow> {
+    await this.client.send(
+      new PutItemCommand({
+        TableName: this.tableName,
+        ReturnValues: "NONE",
+        Item: this.flowToRecord(flow),
+      })
+    );
+    return flow;
+  }
 }

@@ -1,11 +1,18 @@
-import { bodyParser, errorHandler, validationHelper } from "./routes/middlewares";
-import { FlowsRoutes, RootRoutes, ServiceRoutes, FlowDeleteRequestsRoutes } from "./routes";
+import {
+  bodyParser,
+  errorHandler,
+  validationHelper,
+} from "./routes/middlewares";
+import {
+  FlowsRoutes,
+  SourcesRoutes,
+  RootRoutes,
+  ServiceRoutes,
+  FlowDeleteRequestsRoutes,
+} from "./routes";
 import express from "express";
-import { BackendManager } from "./backend/manager";
-import { SourcesRoutes } from "./routes/sources";
-import { Factory } from "repository";
 
-export const setupApp = (repositories: Factory, backends: BackendManager) => {
+export const setupApp = () => {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", true);
@@ -16,10 +23,11 @@ export const setupApp = (repositories: Factory, backends: BackendManager) => {
   const rootRoutes = new RootRoutes();
   app.use("/", rootRoutes.getRoutes());
 
-  const serviceRoutes = new ServiceRoutes(backends);
+  // TODO: Remove backends
+  const serviceRoutes = new ServiceRoutes();
   app.use("/service", serviceRoutes.getRoutes());
 
-  const flowRoutes = new FlowsRoutes(repositories, backends);
+  const flowRoutes = new FlowsRoutes();
   app.use("/flows", flowRoutes.getRoutes());
 
   const sourcesRoutes = new SourcesRoutes();

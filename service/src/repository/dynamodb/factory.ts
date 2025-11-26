@@ -11,8 +11,8 @@ import  { FlowRepository } from "../flows";
 import { MediaObjectsRepository } from '../mediaObjects';
 import { ServiceRepository } from "../service";
 import { FlowDeleteRequestsRepository } from '../flowDeleteRequests';
-import { DDBFlowsImpl } from "./flows";
-import { DDBMediaObjectsImpl } from './mediaObjects';
+import { DDBFlowsRepository } from "./flows";
+import { DDBMediaObjectsRepository } from './mediaObjects';
 import { DDBServiceRepository } from "./service";
 import { DDBFlowDeleteRequestsRepository } from "./flowDeleteRequests";
 import { SourceRepository } from 'repository/source';
@@ -193,7 +193,7 @@ export class DDBRepositoryFactory implements Factory {
     }
 
     getFlowRepository(): FlowRepository {
-        return new DDBFlowsImpl(this.client, this.config);
+        return new DDBFlowsRepository();
     };
 
     getServiceRepository(): ServiceRepository {
@@ -205,7 +205,7 @@ export class DDBRepositoryFactory implements Factory {
     }
 
     getMediaObjectRepository(): MediaObjectsRepository {
-        return new DDBMediaObjectsImpl(this.client, this.config);
+        return new DDBMediaObjectsRepository();
     }
 
     getFlowDeleteRequestsRepository(): FlowDeleteRequestsRepository {

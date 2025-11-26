@@ -1,45 +1,21 @@
-import { beforeAll, describe, expect, test } from "vitest";
-import { RepositoriesBuilder } from "../repository/builder";
-import { BackendManager } from "../backend/manager";
+import { beforeAll, describe, expect, it } from "vitest";
 import { setupApp } from "../setupApp";
 import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "@tams-k8s/api";
-import { inject, register, reset } from "../di";
-import {
-  SourceRepository,
-  sourceRepositoryToken,
-  flowDeleteRequestsRepositoryToken,
-  serviceRepositoryToken,
-} from "../repository";
-import {
-  MemorySourceRepository,
-  MemoryFlowDeleteRequestsRepository,
-  MemoryServiceRepository,
-} from "../repository/memory";
-
-const registerTestInfrastructure = () => {
-  register(sourceRepositoryToken, {
-    useValue: new MemorySourceRepository(),
-  });
-
-  register(flowDeleteRequestsRepositoryToken, {
-    useValue: new MemoryFlowDeleteRequestsRepository(),
-  });
-
-  register(serviceRepositoryToken, {
-    useValue: new MemoryServiceRepository(),
-  });
-};
+import { inject, reset } from "../di";
+import { SourceRepository, sourceRepositoryToken } from "../repository";
+import { registerConfig, registerMemoryInfra } from "registerInfra";
+import { Config } from "configParser";
 
 const setUp = () => {
   reset();
-  registerTestInfrastructure();
+  registerConfig({
+    database: { type: "memory" },
+    backends: [{ type: "memory", id: "memory", default: true }],
+  } as Config);
+  registerMemoryInfra();
 
-  // TODO: Remove after SetupApp refacto
-  const app = setupApp(
-    new RepositoriesBuilder({ type: "memory" }),
-    new BackendManager([{ type: "memory", id: "memory", default: true }])
-  );
+  const app = setupApp();
   return {
     app,
     sourceRepository: inject(sourceRepositoryToken),
@@ -56,7 +32,7 @@ describe("Testing Sources routes using memory repository", () => {
     sourceRepository = setup.sourceRepository;
   });
 
-  test("should return an empty list if no source is found", async () => {
+  it("should return an empty list if no source is found", async () => {
     const response = await request(app).get("/sources");
 
     expect(response.status).toBe(200);
@@ -90,19 +66,19 @@ describe("Testing Sources routes using memory repository", () => {
       await sourceRepository.putSource(s3);
     });
 
-    test("should return all sources", async () => {
+    it("should return all sources", async () => {
       const response = await request(app).get("/sources");
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(3);
     });
 
-    test("should filter by label", async () => {
+    it("should filter by label", async () => {
       const response = await request(app).get("/sources?label=camera-1");
       expect(response.body).toHaveLength(1);
       expect(response.body[0].id).toBe("11111111-1111-1111-1111-111111111111");
     });
 
-    test("should filter by format", async () => {
+    it("should filter by format", async () => {
       const response = await request(app).get(
         "/sources?format=urn:x-nmos:format:video"
       );
@@ -110,14 +86,14 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
-    test("should filter by tag", async () => {
+    it("should filter by tag", async () => {
       const response = await request(app).get("/sources?tag.key=value1");
       expect(response.body).toHaveLength(2);
       expect(response.body[0].id).toBe("22222222-2222-2222-2222-222222222222");
       expect(response.body[1].id).toBe("33333333-3333-3333-3333-333333333333");
     });
 
-    test("should filter correctly using haveTags and doesNotHaveTags", async () => {
+    it("should filter correctly using haveTags and doesNotHaveTags", async () => {
       const response = await request(app).get(
         "/sources?tag_exists.tag=true&tag_exists.key=false"
       );
@@ -127,7 +103,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body[0].id).toBe("11111111-1111-1111-1111-111111111111");
     });
 
-    test("should filter with combined: format + tag", async () => {
+    it("should filter with combined: format + tag", async () => {
       const response = await request(app).get(
         "/sources?format=urn:x-nmos:format:video&tag.key=value1"
       );
@@ -136,7 +112,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
-    test("should return only {limit} sources and NextKey should point to correct source", async () => {
+    it("should return only {limit} sources and NextKey should point to correct source", async () => {
       const firstPage = await request(app).get("/sources?limit=2");
 
       expect(firstPage.status).toBe(200);
@@ -174,7 +150,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(secondPage.headers["x-paging-nextkey"]).toBeUndefined();
     });
 
-    test("should return 400 for invalid page token", async () => {
+    it("should return 400 for invalid page token", async () => {
       const response = await request(app).get("/sources?page=%%%INVALID%%%");
 
       expect(response.status).toBe(400);
@@ -182,7 +158,7 @@ describe("Testing Sources routes using memory repository", () => {
   });
 
   describe("source by id", () => {
-    test("should return status code 404 if source doesn't exist", async () => {
+    it("should return status code 404 if source doesn't exist", async () => {
       const response = await request(app).get(
         "/sources/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
       );
@@ -190,7 +166,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should return the source if present", async () => {
+    it("should return the source if present", async () => {
       await sourceRepository.putSource(
         SourceMother.created()
           .withId("11111111-1111-1111-1111-111111111111")
@@ -220,7 +196,7 @@ describe("Testing Sources routes using memory repository", () => {
       await sourceRepository.putSource(s1);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
+    it("should return 404 if the requested source doesn't exist", async () => {
       const response = await request(app).get(
         "/sources/00000000-0000-0000-0000-000000000000/description"
       );
@@ -228,7 +204,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should return the description of the requested source", async () => {
+    it("should return the description of the requested source", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/description"
       );
@@ -237,7 +213,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body).toEqual("Description for testing purpose");
     });
 
-    test("should update the description of the requested source", async () => {
+    it("should update the description of the requested source", async () => {
       const newDescription = { value: "Updated description for testing" };
       const response = await request(app)
         .put(`/sources/11111111-1111-1111-1111-111111111111/description`)
@@ -250,7 +226,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(updated?.description).toBe("Updated description for testing");
     });
 
-    test("should delete the description of the requested source", async () => {
+    it("should delete the description of the requested source", async () => {
       const response = await request(app).delete(
         `/sources/11111111-1111-1111-1111-111111111111/description`
       );
@@ -274,7 +250,7 @@ describe("Testing Sources routes using memory repository", () => {
       await sourceRepository.putSource(s);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
+    it("should return 404 if the requested source doesn't exist", async () => {
       const response = await request(app).get(
         "/sources/00000000-0000-0000-0000-000000000000/label"
       );
@@ -282,7 +258,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should return the label of the requested source", async () => {
+    it("should return the label of the requested source", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/label"
       );
@@ -291,7 +267,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body).toEqual("Testing");
     });
 
-    test("should update the label of the requested source", async () => {
+    it("should update the label of the requested source", async () => {
       const newLabel = { value: "Updated label" };
       const response = await request(app)
         .put(`/sources/11111111-1111-1111-1111-111111111111/label`)
@@ -304,7 +280,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(updated?.label).toBe("Updated label");
     });
 
-    test("should delete the label of the requested source", async () => {
+    it("should delete the label of the requested source", async () => {
       const response = await request(app).delete(
         `/sources/11111111-1111-1111-1111-111111111111/label`
       );
@@ -316,7 +292,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(updated?.label).toBe(undefined);
     });
 
-    test("should return 404 if the requested source doesn't have a label", async () => {
+    it("should return 404 if the requested source doesn't have a label", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/label"
       );
@@ -336,7 +312,7 @@ describe("Testing Sources routes using memory repository", () => {
       await sourceRepository.putSource(s);
     });
 
-    test("should return 404 if the requested source doesn't exist", async () => {
+    it("should return 404 if the requested source doesn't exist", async () => {
       const response = await request(app).get(
         "/sources/00000000-0000-0000-0000-000000000000/tags"
       );
@@ -344,7 +320,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should return the tags of the requested source", async () => {
+    it("should return the tags of the requested source", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/tags"
       );
@@ -353,7 +329,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body).toEqual({ key: ["value1", "value2"], tag: "test" });
     });
 
-    test("should return the value of a specific tag for string", async () => {
+    it("should return the value of a specific tag for string", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/tags/tag"
       );
@@ -362,7 +338,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body).toEqual("test");
     });
 
-    test("should return the value of a specific tag for array of string", async () => {
+    it("should return the value of a specific tag for array of string", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/tags/key"
       );
@@ -371,7 +347,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.body).toEqual(["value1", "value2"]);
     });
 
-    test("should return 404 if the value of a specific tag doesn't exist", async () => {
+    it("should return 404 if the value of a specific tag doesn't exist", async () => {
       const response = await request(app).get(
         "/sources/11111111-1111-1111-1111-111111111111/tags/unknow"
       );
@@ -379,7 +355,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(response.status).toBe(404);
     });
 
-    test("should create the tag for the requested source", async () => {
+    it("should create the tag for the requested source", async () => {
       const newTag = { value: "newTag" };
       const response = await request(app)
         .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
@@ -392,7 +368,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(updated?.tags?.new).toBe("newTag");
     });
 
-    test("should update the tag of the requested source", async () => {
+    it("should update the tag of the requested source", async () => {
       const newTag = { value: "updated" };
       const response = await request(app)
         .put(`/sources/11111111-1111-1111-1111-111111111111/tags/new`)
@@ -405,7 +381,7 @@ describe("Testing Sources routes using memory repository", () => {
       expect(updated?.tags?.new).toBe("updated");
     });
 
-    test("should delete the tag of the requested source", async () => {
+    it("should delete the tag of the requested source", async () => {
       const response = await request(app).delete(
         `/sources/11111111-1111-1111-1111-111111111111/tags/tag`
       );

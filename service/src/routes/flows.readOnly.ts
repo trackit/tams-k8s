@@ -1,51 +1,66 @@
-import { Response } from 'express';
+import { Response } from "express";
 import {
-    flowReadOnlyValidator,
-    GetFlowReadOnlyPathParams,
-    getFlowReadOnlyPathParamsValidator,
-    PutFlowReadOnlyPathParams,
-    putFlowReadOnlyPathParamsValidator,
-
-} from '@tams-k8s/api';
-import { ValidatedRequest } from 'express-joi-validation';
-import { BackendManager } from '../backend/manager';
-import { RepositoriesBuilder } from '../repository/builder';
-import { Factory } from '../repository/factory';
-import { Routes } from './generic';
-import { NotFoundHttpError, ParamsBodySchema, ParamsSchema, validator } from './middlewares';
+  flowReadOnlyValidator,
+  GetFlowReadOnlyPathParams,
+  getFlowReadOnlyPathParamsValidator,
+  PutFlowReadOnlyPathParams,
+  putFlowReadOnlyPathParamsValidator,
+} from "@tams-k8s/api";
+import { ValidatedRequest } from "express-joi-validation";
+import { Routes } from "./generic";
+import {
+  NotFoundHttpError,
+  ParamsBodySchema,
+  ParamsSchema,
+  validator,
+} from "./middlewares";
+import { inject } from "../di";
+import { flowRepositoryToken } from "../repository";
 
 export class FlowsReadOnly extends Routes {
-    constructor(repositories: Factory, backends: BackendManager) {
-        super(repositories, backends);
+  private readonly repository = inject(flowRepositoryToken);
 
-        this.route.get<any, boolean>(
-            '/:flowId/read_only',
-            validator.params(getFlowReadOnlyPathParamsValidator),
-            validator.response(flowReadOnlyValidator),
-            this.getFlowReadOnly.bind(this),
-        );
-        this.route.put<any, void, boolean>(
-            '/:flowId/read_only',
-            validator.params(putFlowReadOnlyPathParamsValidator),
-            validator.body(flowReadOnlyValidator.required()),
-            this.putFlowReadOnly.bind(this),
-        );
-    }
+  constructor() {
+    super();
 
-    async getFlowReadOnly(req: ValidatedRequest<ParamsSchema<GetFlowReadOnlyPathParams>>, res: Response<boolean>) {
-        const flowRepository = this.repositories!.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        res.json(flow.readOnly === true);
-    }
+    this.route.get<any, boolean>(
+      "/:flowId/read_only",
+      validator.params(getFlowReadOnlyPathParamsValidator),
+      validator.response(flowReadOnlyValidator),
+      this.getFlowReadOnly.bind(this)
+    );
+    this.route.put<any, void, boolean>(
+      "/:flowId/read_only",
+      validator.params(putFlowReadOnlyPathParamsValidator),
+      validator.body(flowReadOnlyValidator.required()),
+      this.putFlowReadOnly.bind(this)
+    );
+  }
 
-    async putFlowReadOnly(req: ValidatedRequest<ParamsBodySchema<PutFlowReadOnlyPathParams, boolean>>, res: Response<void>) {
-        const flowRepository = this.repositories!.getFlowRepository();
-        const flow = await flowRepository.getFlowById(req.params.flowId);
-        if (flow === null) throw new NotFoundHttpError(`Flow "${req.params.flowId}" could not be found`);
-        flow.metadataUpdated = new Date();
-        flow.readOnly = req.body === true ? true : undefined;
-        await flowRepository.putFlow(flow);
-        res.sendStatus(204);
-    }
+  async getFlowReadOnly(
+    req: ValidatedRequest<ParamsSchema<GetFlowReadOnlyPathParams>>,
+    res: Response<boolean>
+  ) {
+    const flow = await this.repository.getFlowById(req.params.flowId);
+    if (flow === null)
+      throw new NotFoundHttpError(
+        `Flow "${req.params.flowId}" could not be found`
+      );
+    res.json(flow.readOnly === true);
+  }
+
+  async putFlowReadOnly(
+    req: ValidatedRequest<ParamsBodySchema<PutFlowReadOnlyPathParams, boolean>>,
+    res: Response<void>
+  ) {
+    const flow = await this.repository.getFlowById(req.params.flowId);
+    if (flow === null)
+      throw new NotFoundHttpError(
+        `Flow "${req.params.flowId}" could not be found`
+      );
+    flow.metadataUpdated = new Date();
+    flow.readOnly = req.body === true ? true : undefined;
+    await this.repository.putFlow(flow);
+    res.sendStatus(204);
+  }
 }

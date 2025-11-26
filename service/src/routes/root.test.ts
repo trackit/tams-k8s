@@ -1,50 +1,26 @@
-import { describe, expect, test } from "vitest";
+import { describe, expect, it } from "vitest";
 import request from "supertest";
-import {
-  MemoryFlowDeleteRequestsRepository,
-  MemoryServiceRepository,
-  MemorySourceRepository,
-} from "repository/memory";
-import { register, reset } from "di";
-import {
-  flowDeleteRequestsRepositoryToken,
-  sourceRepositoryToken,
-  serviceRepositoryToken,
-} from "repository";
-import { BackendManager } from "backend/manager";
-import { setupApp } from "setupApp";
-import { RepositoriesBuilder } from "repository/builder";
-
-const registerTestInfrastructure = () => {
-  register(flowDeleteRequestsRepositoryToken, {
-    useValue: new MemoryFlowDeleteRequestsRepository(),
-  });
-
-  register(sourceRepositoryToken, {
-    useValue: new MemorySourceRepository(),
-  });
-
-  register(serviceRepositoryToken, {
-    useValue: new MemoryServiceRepository(),
-  });
-};
+import { reset } from "../di";
+import { setupApp } from "../setupApp";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { Config } from "../configParser";
 
 const setup = () => {
   reset();
-  registerTestInfrastructure();
+  registerConfig({
+    database: { type: "memory" },
+    backends: [{ type: "memory", id: "memory", default: true }],
+  } as Config);
+  registerMemoryInfra();
 
-  // TODO: Remove after SetupApp refacto
-  const app = setupApp(
-    new RepositoriesBuilder({ type: "memory" }),
-    new BackendManager([{ type: "memory", id: "memory", default: true }])
-  );
+  const app = setupApp();
   return {
     app,
   };
 };
 
 describe("Testing Root routes", () => {
-  test("should return the list of services", async () => {
+  it("should return the list of services", async () => {
     const { app } = setup();
     const response = await request(app).get("/");
 

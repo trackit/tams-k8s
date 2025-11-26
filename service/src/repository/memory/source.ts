@@ -1,4 +1,3 @@
-import { MediaObject } from '../mediaObjects';
 import type {
   ListSourcesFilters,
   Source,
@@ -30,7 +29,7 @@ export class MemorySourceRepository implements SourceRepository {
   }
 
   getInternal(): Source[] {
-      return this.sources;
+    return this.sources;
   }
 
   async listSources(

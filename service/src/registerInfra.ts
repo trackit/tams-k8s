@@ -2,6 +2,8 @@ import { register } from "./di";
 import { Config } from "./configParser";
 import {
   flowDeleteRequestsRepositoryToken,
+  flowRepositoryToken,
+  mediaObjectRepositoryToken,
   serviceRepositoryToken,
   sourceRepositoryToken,
 } from "./repository";
@@ -10,46 +12,76 @@ import {
   DDBFlowDeleteRequestsRepository,
   DDBSourcesRepository,
   DDBServiceRepository,
+  DDBFlowsRepository,
+  DDBMediaObjectsRepository,
 } from "./repository/dynamodb";
 import {
   MemoryFlowDeleteRequestsRepository,
+  MemoryFlowsRepository,
+  MemoryMediaObjectRepository,
   MemoryServiceRepository,
   MemorySourceRepository,
 } from "./repository/memory";
+import { BackendManager, backendManagerToken } from "./backend/manager";
 
-const registerConfig = (config: Config) => {
+export const registerConfig = (config: Config) => {
   register(dynamodbConfigToken, {
     useValue: config.database,
   });
+
+  register(backendManagerToken, {
+    useValue: new BackendManager(config.backends),
+  });
 };
 
-const registerDynamoInfra = () => {
+export const registerDynamoInfra = () => {
+  register(mediaObjectRepositoryToken, {
+    useClass: DDBMediaObjectsRepository,
+  });
+
+  register(flowRepositoryToken, {
+    useClass: DDBFlowsRepository,
+  });
+
   register(flowDeleteRequestsRepositoryToken, {
     useClass: DDBFlowDeleteRequestsRepository,
   });
+
   register(sourceRepositoryToken, {
     useClass: DDBSourcesRepository,
   });
+
   register(serviceRepositoryToken, {
     useClass: DDBServiceRepository,
   });
 };
 
-const registerMemoryInfra = () => {
+export const registerMemoryInfra = () => {
+  register(mediaObjectRepositoryToken, {
+    useValue: new MemoryMediaObjectRepository(),
+  });
+
+  register(flowRepositoryToken, {
+    useValue: new MemoryFlowsRepository(),
+  });
+
   register(flowDeleteRequestsRepositoryToken, {
     useValue: new MemoryFlowDeleteRequestsRepository(),
   });
+
   register(sourceRepositoryToken, {
     useValue: new MemorySourceRepository(),
   });
+
   register(serviceRepositoryToken, {
     useValue: new MemoryServiceRepository(),
   });
 };
 
-export const registerInfra = (config?: Config) => {
-  if (config?.database.type === "dynamodb") {
-    registerConfig(config);
+export const registerInfra = (config: Config) => {
+  registerConfig(config);
+
+  if (config.database.type === "dynamodb") {
     registerDynamoInfra();
   } else {
     registerMemoryInfra();

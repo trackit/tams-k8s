@@ -1,44 +1,21 @@
-import { describe, expect, test } from "vitest";
-import { RepositoriesBuilder } from "../repository/builder";
-import { BackendManager } from "../backend/manager";
+import { describe, expect, it } from "vitest";
 import { setupApp } from "../setupApp";
 import request from "supertest";
 import { ServiceMother } from "../api/models/service.mother";
-import { inject, register, reset } from "../di";
-import {
-  flowDeleteRequestsRepositoryToken,
-  sourceRepositoryToken,
-  serviceRepositoryToken,
-} from "../repository";
-import {
-  MemoryFlowDeleteRequestsRepository,
-  MemoryServiceRepository,
-  MemorySourceRepository,
-} from "../repository/memory";
-
-const registerTestInfrastructure = () => {
-  register(flowDeleteRequestsRepositoryToken, {
-    useValue: new MemoryFlowDeleteRequestsRepository(),
-  });
-
-  register(sourceRepositoryToken, {
-    useValue: new MemorySourceRepository(),
-  });
-
-  register(serviceRepositoryToken, {
-    useValue: new MemoryServiceRepository(),
-  });
-};
+import { inject, reset } from "../di";
+import { serviceRepositoryToken } from "../repository";
+import { registerConfig, registerMemoryInfra } from "registerInfra";
+import { Config } from "configParser";
 
 const setup = () => {
   reset();
-  registerTestInfrastructure();
+  registerConfig({
+    database: { type: "memory" },
+    backends: [{ type: "memory", id: "memory", default: true }],
+  } as Config);
+  registerMemoryInfra();
 
-  // TODO: Remove after SetupApp refacto
-  const app = setupApp(
-    new RepositoriesBuilder({ type: "memory" }),
-    new BackendManager([{ type: "memory", id: "memory", default: true }])
-  );
+  const app = setupApp();
   return {
     app,
     serviceRepository: inject(serviceRepositoryToken),
@@ -46,7 +23,7 @@ const setup = () => {
 };
 
 describe("Testing Service routes using memory repository", () => {
-  test("should return the service information", async () => {
+  it("should return the service information", async () => {
     const { app } = setup();
     const response = await request(app).get("/service");
     expect(response.status).toBe(200);
@@ -62,7 +39,7 @@ describe("Testing Service routes using memory repository", () => {
     );
   });
 
-  test("should update the service information", async () => {
+  it("should update the service information", async () => {
     const { app, serviceRepository } = setup();
     const response = await request(app)
       .post("/service")
@@ -75,7 +52,7 @@ describe("Testing Service routes using memory repository", () => {
     expect(service.description).toBe("description");
   });
 
-  test("should return the storage backends information", async () => {
+  it("should return the storage backends information", async () => {
     const { app } = setup();
     const response = await request(app).get("/service/storage-backends");
 
