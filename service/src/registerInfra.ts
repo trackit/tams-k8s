@@ -2,15 +2,18 @@ import { register } from "./di";
 import { Config } from "./configParser";
 import {
   flowDeleteRequestsRepositoryToken,
+  serviceRepositoryToken,
   sourceRepositoryToken,
 } from "./repository";
 import {
   dynamodbConfigToken,
   DDBFlowDeleteRequestsRepository,
   DDBSourcesRepository,
+  DDBServiceRepository,
 } from "./repository/dynamodb";
 import {
   MemoryFlowDeleteRequestsRepository,
+  MemoryServiceRepository,
   MemorySourceRepository,
 } from "./repository/memory";
 
@@ -27,6 +30,9 @@ const registerDynamoInfra = () => {
   register(sourceRepositoryToken, {
     useClass: DDBSourcesRepository,
   });
+  register(serviceRepositoryToken, {
+    useClass: DDBServiceRepository,
+  });
 };
 
 const registerMemoryInfra = () => {
@@ -35,6 +41,9 @@ const registerMemoryInfra = () => {
   });
   register(sourceRepositoryToken, {
     useClass: MemorySourceRepository,
+  });
+  register(serviceRepositoryToken, {
+    useClass: MemoryServiceRepository,
   });
 };
 

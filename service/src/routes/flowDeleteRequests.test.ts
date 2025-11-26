@@ -7,10 +7,12 @@ import { FlowDeleteRequestMother } from "../api/models/flowDeleteRequest.body.mo
 import { inject, register, reset } from "../di";
 import {
   flowDeleteRequestsRepositoryToken,
+  serviceRepositoryToken,
   sourceRepositoryToken,
 } from "../repository";
 import {
   MemoryFlowDeleteRequestsRepository,
+  MemoryServiceRepository,
   MemorySourceRepository,
 } from "../repository/memory";
 
@@ -21,6 +23,10 @@ const registerTestInfrastructure = () => {
 
   register(sourceRepositoryToken, {
     useClass: MemorySourceRepository,
+  });
+
+  register(serviceRepositoryToken, {
+    useClass: MemoryServiceRepository,
   });
 };
 

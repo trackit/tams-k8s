@@ -13,7 +13,7 @@ import { ServiceRepository } from "../service";
 import { FlowDeleteRequestsRepository } from '../flowDeleteRequests';
 import { DDBFlowsImpl } from "./flows";
 import { DDBMediaObjectsImpl } from './mediaObjects';
-import { DDBServiceImpl } from "./service";
+import { DDBServiceRepository } from "./service";
 import { DDBFlowDeleteRequestsRepository } from "./flowDeleteRequests";
 import { SourceRepository } from 'repository/source';
 import { DDBSourcesRepository } from './source';
@@ -197,7 +197,7 @@ export class DDBRepositoryFactory implements Factory {
     };
 
     getServiceRepository(): ServiceRepository {
-        return new DDBServiceImpl(this.client, this.config);
+        return new DDBServiceRepository();
     }
 
     getSourceRepository(): SourceRepository {

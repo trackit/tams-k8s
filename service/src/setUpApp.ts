@@ -16,7 +16,7 @@ export const setUpApp = (repositories: RepositoriesBuilder, backends: BackendMan
   const rootRoutes = new RootRoutes(repositories, backends);
   app.use("/", rootRoutes.getRoutes());
 
-  const serviceRoutes = new ServiceRoutes(repositories, backends);
+  const serviceRoutes = new ServiceRoutes(backends);
   app.use("/service", serviceRoutes.getRoutes());
 
   const flowRoutes = new FlowsRoutes(repositories, backends);

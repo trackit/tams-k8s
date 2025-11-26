@@ -9,10 +9,12 @@ import {
   SourceRepository,
   sourceRepositoryToken,
   flowDeleteRequestsRepositoryToken,
+  serviceRepositoryToken,
 } from "../repository";
 import {
   MemorySourceRepository,
   MemoryFlowDeleteRequestsRepository,
+  MemoryServiceRepository,
 } from "../repository/memory";
 
 const registerTestInfrastructure = () => {
@@ -22,6 +24,10 @@ const registerTestInfrastructure = () => {
 
   register(flowDeleteRequestsRepositoryToken, {
     useClass: MemoryFlowDeleteRequestsRepository,
+  });
+
+  register(serviceRepositoryToken, {
+    useClass: MemoryServiceRepository,
   });
 };
 

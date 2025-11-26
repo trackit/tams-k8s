@@ -1,6 +1,6 @@
 import { Service, ServiceRepository, ServiceUpdate } from "../service";
 
-export class MemoryServiceImpl implements ServiceRepository {
+export class MemoryServiceRepository implements ServiceRepository {
     private service: Service;
 
     constructor() {

@@ -1,0 +1,98 @@
+import { describe, expect, test } from "vitest";
+import { RepositoriesBuilder } from "../repository/builder";
+import { BackendManager } from "../backend/manager";
+import { setUpApp } from "../setUpApp";
+import request from "supertest";
+import { ServiceMother } from "../api/models/service.mother";
+import { inject, register, reset } from "../di";
+import {
+  flowDeleteRequestsRepositoryToken,
+  sourceRepositoryToken,
+  serviceRepositoryToken,
+} from "../repository";
+import {
+  MemoryFlowDeleteRequestsRepository,
+  MemoryServiceRepository,
+  MemorySourceRepository,
+} from "../repository/memory";
+
+const registerTestInfrastructure = () => {
+  register(flowDeleteRequestsRepositoryToken, {
+    useClass: MemoryFlowDeleteRequestsRepository,
+  });
+
+  register(sourceRepositoryToken, {
+    useClass: MemorySourceRepository,
+  });
+
+  register(serviceRepositoryToken, {
+    useClass: MemoryServiceRepository,
+  });
+};
+
+const setup = () => {
+  reset();
+  registerTestInfrastructure();
+
+  // TODO: Remove after SetupApp refacto
+  const app = setUpApp(
+    new RepositoriesBuilder({ type: "memory" }),
+    new BackendManager([{ type: "memory", id: "memory", default: true }])
+  );
+  return {
+    app,
+    serviceRepository: inject(serviceRepositoryToken),
+  };
+};
+
+describe("Service routes", () => {
+  test("should list root endpoints", async () => {
+    const { app } = setup();
+    const response = await request(app).get("/");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([
+      "service",
+      "flows",
+      "sources",
+      "flow-delete-requests",
+    ]);
+  });
+
+  test("should return the service information", async () => {
+    const { app } = setup();
+    const response = await request(app).get("/service");
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(
+      ServiceMother.created()
+        .withName("")
+        .withDescription("")
+        .withType("urn:x-tams:service.example")
+        .withApiVersion("1.0")
+        .withServiceVersion("tams.7.0-b831a15")
+        .withEventStreamMechanisms([])
+        .build()
+    );
+  });
+
+  test("should update the service information", async () => {
+    const { app, serviceRepository } = setup();
+    const response = await request(app)
+      .post("/service")
+      .send({ name: "service", description: "description" });
+
+    const service = await serviceRepository.getService();
+
+    expect(response.status).toBe(204);
+    expect(service.name).toBe("service");
+    expect(service.description).toBe("description");
+  });
+
+  test("should return the storage backends information", async () => {
+    const { app } = setup();
+    const response = await request(app).get("/service/storage-backends");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual([]);
+  });
+});

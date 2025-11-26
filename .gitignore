@@ -7,3 +7,5 @@ k8s-controller/vendor
 
 secret.yaml
 .prettierrc
+
+.DS_Store

@@ -9,11 +9,11 @@ const config = new ConfigReader().getCachedConfig();
 
 const main = async () => {
   registerInfra(config);
-  
+
   // To remove
   const backends = new BackendManager(config.backends);
   const repositories = new RepositoriesBuilder(config.database);
-  
+
   await backends.initialize();
   await repositories.initialize();
 
@@ -23,6 +23,7 @@ const main = async () => {
     log.info(`Server is running on port ${config.server.port}`)
   );
 };
+
 main().catch((err) => {
   log.error(err);
   process.exit(1);
