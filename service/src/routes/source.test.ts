@@ -34,6 +34,7 @@ const registerTestInfrastructure = () => {
 const setUp = () => {
   reset();
   registerTestInfrastructure();
+
   // TODO: Remove after SetupApp refacto
   const app = setUpApp(
     new RepositoriesBuilder({ type: "memory" }),

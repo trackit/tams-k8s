@@ -13,7 +13,7 @@ export const setUpApp = (repositories: RepositoriesBuilder, backends: BackendMan
 
   // enable receiving json
   app.use(bodyParser);
-  const rootRoutes = new RootRoutes(repositories, backends);
+  const rootRoutes = new RootRoutes();
   app.use("/", rootRoutes.getRoutes());
 
   const serviceRoutes = new ServiceRoutes(backends);

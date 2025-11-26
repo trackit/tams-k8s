@@ -15,6 +15,7 @@ import {
   MemoryServiceRepository,
   MemorySourceRepository,
 } from "../repository/memory";
+import { registerInfra } from "registerInfra";
 
 const registerTestInfrastructure = () => {
   register(flowDeleteRequestsRepositoryToken, {
@@ -33,6 +34,7 @@ const registerTestInfrastructure = () => {
 const setup = () => {
   reset();
   registerTestInfrastructure();
+
   // TODO: Remove after SetupApp refacto
   const app = setUpApp(
     new RepositoriesBuilder({ type: "memory" }),

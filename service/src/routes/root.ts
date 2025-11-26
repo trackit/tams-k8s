@@ -1,11 +1,9 @@
 import { Request, Response } from "express";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
 import { Routes } from "./generic";
 
 export class RootRoutes extends Routes {
-  constructor(repositories: RepositoriesBuilder, backends: BackendManager) {
-    super(repositories, backends);
+  constructor() {
+    super();
 
     this.route.get("/", this.get.bind(this));
   }
