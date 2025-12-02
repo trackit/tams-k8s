@@ -4,8 +4,8 @@ import request from "supertest";
 import { ServiceMother } from "../api/models/service.mother";
 import { inject, reset } from "../di";
 import { serviceRepositoryToken } from "../repository";
-import { registerConfig, registerMemoryInfra } from "registerInfra";
-import { Config } from "configParser";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { Config } from "../configParser";
 
 const setup = () => {
   reset();

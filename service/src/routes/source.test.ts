@@ -4,8 +4,8 @@ import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "@tams-k8s/api";
 import { inject, reset } from "../di";
 import { SourceRepository, sourceRepositoryToken } from "../repository";
-import { registerConfig, registerMemoryInfra } from "registerInfra";
-import { Config } from "configParser";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { Config } from "../configParser";
 
 const setup = () => {
   reset();

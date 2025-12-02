@@ -3,9 +3,9 @@ import request from "supertest";
 import { RepoFlowMother } from "../repository/flows.mother";
 import { reset, inject } from "../di";
 import { Flow, FlowRepository, flowRepositoryToken } from "../repository";
-import { registerConfig, registerMemoryInfra } from "registerInfra";
-import { Config } from "configParser";
-import { setupApp } from "setupApp";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { Config } from "../configParser";
+import { setupApp } from "../setupApp";
 
 const setup = () => {
   reset();

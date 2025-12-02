@@ -4,8 +4,8 @@ import request from "supertest";
 import { FlowDeleteRequestMother } from "../api/models/flowDeleteRequest.body.mother";
 import { inject, reset } from "../di";
 import { flowDeleteRequestsRepositoryToken } from "../repository";
-import { Config } from "configParser";
-import { registerConfig, registerMemoryInfra } from "registerInfra";
+import { Config } from "../configParser";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
 
 const setup = () => {
   reset();
