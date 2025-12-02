@@ -3,9 +3,9 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { ApiFlowMother, FormatUrn } from "@tams-k8s/api";
 import { RepoFlowMother } from "../repository/flows.mother";
 import { inject, reset } from "../di";
-import { registerConfig, registerMemoryInfra } from "registerInfra";
-import { Config } from "configParser";
-import { setupApp } from "setupApp";
+import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { Config } from "../configParser";
+import { setupApp } from "../setupApp";
 import { Flow, FlowRepository, flowRepositoryToken } from "../repository";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 
