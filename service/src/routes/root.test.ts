@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import request from "supertest";
 import { reset } from "../di";
-import { setupApp } from "../setupApp";
-import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { setupApp } from "../utils/setupApp";
+import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 
 const setup = () => {

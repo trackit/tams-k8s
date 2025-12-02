@@ -1,7 +1,7 @@
 import { log } from "@tams-k8s/logger";
 import { ConfigReader } from "./configParser/reader";
-import { setupApp } from "./setupApp";
-import { registerInfra } from "./registerInfra";
+import { setupApp } from "./utils/setupApp";
+import { registerInfra } from "./utils/registerInfra";
 
 const config = new ConfigReader().getCachedConfig();
 

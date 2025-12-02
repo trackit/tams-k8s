@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { setupApp } from "../setupApp";
+import { setupApp } from "../utils/setupApp";
 import request from "supertest";
 import { ServiceMother } from "../api/models/service.mother";
 import { inject, reset } from "../di";
 import { serviceRepositoryToken } from "../repository";
-import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 
 const setup = () => {

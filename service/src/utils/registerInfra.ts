@@ -1,12 +1,12 @@
-import { register } from "./di";
-import { Config } from "./configParser";
+import { register } from "../di";
+import { Config } from "../configParser";
 import {
   flowDeleteRequestsRepositoryToken,
   flowRepositoryToken,
   mediaObjectRepositoryToken,
   serviceRepositoryToken,
   sourceRepositoryToken,
-} from "./repository";
+} from "../repository";
 import {
   dynamodbConfigToken,
   DDBFlowDeleteRequestsRepository,
@@ -14,16 +14,16 @@ import {
   DDBServiceRepository,
   DDBFlowsRepository,
   DDBMediaObjectsRepository,
-} from "./repository/dynamodb";
-import { ensureDynamoTables } from "./repository/dynamodb/client";
+} from "../repository/dynamodb";
+import { ensureDynamoTables } from "../repository/dynamodb/client";
 import {
   MemoryFlowDeleteRequestsRepository,
   MemoryFlowsRepository,
   MemoryMediaObjectRepository,
   MemoryServiceRepository,
   MemorySourceRepository,
-} from "./repository/memory";
-import { BackendManager, backendManagerToken } from "./backend/manager";
+} from "../repository/memory";
+import { BackendManager, backendManagerToken } from "../backend/manager";
 
 export const registerConfig = (config: Config) => {
   register(dynamodbConfigToken, {

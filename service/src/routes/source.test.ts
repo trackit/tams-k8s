@@ -1,10 +1,10 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { setupApp } from "../setupApp";
+import { setupApp } from "../utils/setupApp";
 import request from "supertest";
 import { FormatUrn, Source, SourceMother } from "@tams-k8s/api";
 import { inject, reset } from "../di";
 import { SourceRepository, sourceRepositoryToken } from "../repository";
-import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 
 const setup = () => {

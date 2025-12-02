@@ -2,14 +2,14 @@ import {
   bodyParser,
   errorHandler,
   validationHelper,
-} from "./routes/middlewares";
+} from "../routes/middlewares";
 import {
   FlowsRoutes,
   SourcesRoutes,
   RootRoutes,
   ServiceRoutes,
   FlowDeleteRequestsRoutes,
-} from "./routes";
+} from "../routes";
 import express from "express";
 
 export const setupApp = () => {

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { setupApp } from "../setupApp";
+import { setupApp } from "../utils/setupApp";
 import request from "supertest";
 import { FlowDeleteRequestMother } from "../api/models/flowDeleteRequest.body.mother";
 import { inject, reset } from "../di";
 import { flowDeleteRequestsRepositoryToken } from "../repository";
 import { Config } from "../configParser";
-import { registerConfig, registerMemoryInfra } from "../registerInfra";
+import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 
 const setup = () => {
   reset();
