@@ -57,24 +57,97 @@ export const ensureDynamoTables = async (): Promise<void> => {
   const config: DynamoDBConfig = inject(dynamodbConfigToken);
   const client = inject(dynamodbClientToken);
 
-  console.log("config", config);
-  console.log("client", client);
-
-  try {
+  await ensureTableExists(client, config.serviceTableName, async () => {
     await client.send(
-      new DescribeTableCommand({
-        TableName: config.sourceTableName,
+      new CreateTableCommand({
+        TableName: config.serviceTableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "serviceKey",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "serviceKey",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
       })
     );
-  } catch (e) {
-    console.log("e", e);
-    if (e instanceof ResourceNotFoundException) {
-      log.info("Source table not found, creating...", {
-        tableName: config.sourceTableName,
-      });
+  });
+
+  await ensureTableExists(client, config.flowTableName, async () => {
+    await client.send(
+      new CreateTableCommand({
+        TableName: config.flowTableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "flowId",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "flowId",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  });
+
+  await ensureTableExists(client, config.sourceTableName, async () => {
+    await client.send(
+      new CreateTableCommand({
+        TableName: config.sourceTableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "id",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "id",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  });
+
+  await ensureTableExists(client, config.mediaObjectTableName, async () => {
+    await client.send(
+      new CreateTableCommand({
+        TableName: config.mediaObjectTableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "objectId",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "objectId",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  });
+
+  await ensureTableExists(
+    client,
+    config.flowDeleteRequestsTableName,
+    async () => {
       await client.send(
         new CreateTableCommand({
-          TableName: config.sourceTableName,
+          TableName: config.flowDeleteRequestsTableName,
           AttributeDefinitions: [
             {
               AttributeName: "id",
@@ -90,123 +163,6 @@ export const ensureDynamoTables = async (): Promise<void> => {
           BillingMode: "PAY_PER_REQUEST",
         })
       );
-      log.info("Source table created", {
-        tableName: config.sourceTableName,
-      });
-    } else {
-      log.error(
-        "Could not verify source table existence",
-        { tableName: config.sourceTableName },
-        e
-      );
     }
-  }
-  // await ensureTableExists(client, config.serviceTableName, async () => {
-  //   await client.send(
-  //     new CreateTableCommand({
-  //       TableName: config.serviceTableName,
-  //       AttributeDefinitions: [
-  //         {
-  //           AttributeName: "serviceKey",
-  //           AttributeType: "S",
-  //         },
-  //       ],
-  //       KeySchema: [
-  //         {
-  //           AttributeName: "serviceKey",
-  //           KeyType: "HASH",
-  //         },
-  //       ],
-  //       BillingMode: "PAY_PER_REQUEST",
-  //     })
-  //   );
-  // });
-
-  // await ensureTableExists(client, config.flowTableName, async () => {
-  //   await client.send(
-  //     new CreateTableCommand({
-  //       TableName: config.flowTableName,
-  //       AttributeDefinitions: [
-  //         {
-  //           AttributeName: "flowId",
-  //           AttributeType: "S",
-  //         },
-  //       ],
-  //       KeySchema: [
-  //         {
-  //           AttributeName: "flowId",
-  //           KeyType: "HASH",
-  //         },
-  //       ],
-  //       BillingMode: "PAY_PER_REQUEST",
-  //     })
-  //   );
-  // });
-
-  // await ensureTableExists(client, config.sourceTableName, async () => {
-  //   await client.send(
-  //     new CreateTableCommand({
-  //       TableName: config.sourceTableName,
-  //       AttributeDefinitions: [
-  //         {
-  //           AttributeName: "id",
-  //           AttributeType: "S",
-  //         },
-  //       ],
-  //       KeySchema: [
-  //         {
-  //           AttributeName: "id",
-  //           KeyType: "HASH",
-  //         },
-  //       ],
-  //       BillingMode: "PAY_PER_REQUEST",
-  //     })
-  //   );
-  // });
-
-  // await ensureTableExists(client, config.mediaObjectTableName, async () => {
-  //   await client.send(
-  //     new CreateTableCommand({
-  //       TableName: config.mediaObjectTableName,
-  //       AttributeDefinitions: [
-  //         {
-  //           AttributeName: "objectId",
-  //           AttributeType: "S",
-  //         },
-  //       ],
-  //       KeySchema: [
-  //         {
-  //           AttributeName: "objectId",
-  //           KeyType: "HASH",
-  //         },
-  //       ],
-  //       BillingMode: "PAY_PER_REQUEST",
-  //     })
-  //   );
-  // });
-
-  // await ensureTableExists(
-  //   client,
-  //   config.flowDeleteRequestsTableName,
-  //   async () => {
-  //     await client.send(
-  //       new CreateTableCommand({
-  //         TableName: config.flowDeleteRequestsTableName,
-  //         AttributeDefinitions: [
-  //           {
-  //             AttributeName: "id",
-  //             AttributeType: "S",
-  //           },
-  //         ],
-  //         KeySchema: [
-  //           {
-  //             AttributeName: "id",
-  //             KeyType: "HASH",
-  //           },
-  //         ],
-  //         BillingMode: "PAY_PER_REQUEST",
-  //       })
-  //     );
-  //   }
-  // );
+  );
 };
