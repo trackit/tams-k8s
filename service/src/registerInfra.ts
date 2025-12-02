@@ -15,6 +15,7 @@ import {
   DDBFlowsRepository,
   DDBMediaObjectsRepository,
 } from "./repository/dynamodb";
+import { ensureDynamoTables } from "./repository/dynamodb/client";
 import {
   MemoryFlowDeleteRequestsRepository,
   MemoryFlowsRepository,
@@ -78,10 +79,11 @@ export const registerMemoryInfra = () => {
   });
 };
 
-export const registerInfra = (config: Config) => {
+export const registerInfra = async (config: Config) => {
   registerConfig(config);
 
   if (config.database.type === "dynamodb") {
+    await ensureDynamoTables();
     registerDynamoInfra();
   } else {
     registerMemoryInfra();

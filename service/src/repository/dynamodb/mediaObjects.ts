@@ -1,5 +1,6 @@
 import {
   AttributeValue,
+  CreateTableCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -19,6 +20,27 @@ export const MediaObjectTableNameToken = createInjectionToken<string>(
 export class DDBMediaObjectsRepository implements MediaObjectsRepository {
   private readonly client: DynamoDBClient = inject(dynamodbClientToken);
   private readonly tableName = inject(MediaObjectTableNameToken);
+
+  public async createTable() {
+    await this.client.send(
+      new CreateTableCommand({
+        TableName: this.tableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "objectId",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "objectId",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  }
 
   private mediaObjectToRecord(
     data: MediaObject

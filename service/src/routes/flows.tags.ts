@@ -13,9 +13,6 @@ import {
   putFlowTagPathParamsValidator,
 } from "@tams-k8s/api";
 import { ValidatedRequest } from "express-joi-validation";
-import { BackendManager } from "../backend/manager";
-import { RepositoriesBuilder } from "../repository/builder";
-import { Factory } from "../repository/factory";
 import { Routes } from "./generic";
 import {
   ForbiddenHttpError,

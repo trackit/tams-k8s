@@ -23,7 +23,6 @@ export const setupApp = () => {
   const rootRoutes = new RootRoutes();
   app.use("/", rootRoutes.getRoutes());
 
-  // TODO: Remove backends
   const serviceRoutes = new ServiceRoutes();
   app.use("/service", serviceRoutes.getRoutes());
 

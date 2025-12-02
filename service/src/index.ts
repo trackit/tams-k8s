@@ -6,7 +6,7 @@ import { registerInfra } from "./registerInfra";
 const config = new ConfigReader().getCachedConfig();
 
 const main = async () => {
-  registerInfra(config);
+  await registerInfra(config);
   const app = setupApp();
 
   app.listen(config.server.port, () =>

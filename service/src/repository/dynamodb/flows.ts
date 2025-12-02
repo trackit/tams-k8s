@@ -1,5 +1,6 @@
 import {
   AttributeValue,
+  CreateTableCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -29,6 +30,27 @@ export const FlowTableNameToken = createInjectionToken<string>(
 export class DDBFlowsRepository implements FlowRepository {
   private readonly client: DynamoDBClient = inject(dynamodbClientToken);
   private readonly tableName = inject(FlowTableNameToken);
+
+  public async createTable() {
+    await this.client.send(
+      new CreateTableCommand({
+        TableName: this.tableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "flowId",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "flowId",
+            KeyType: "HASH",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  }
 
   private containerMappingRecordToContainerMapping(
     data: Record<string, any>
