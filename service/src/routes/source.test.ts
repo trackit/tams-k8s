@@ -7,7 +7,7 @@ import { SourceRepository, sourceRepositoryToken } from "../repository";
 import { registerConfig, registerMemoryInfra } from "registerInfra";
 import { Config } from "configParser";
 
-const setUp = () => {
+const setup = () => {
   reset();
   registerConfig({
     database: { type: "memory" },
@@ -27,9 +27,9 @@ describe("Testing Sources routes using memory repository", () => {
   let sourceRepository: SourceRepository;
 
   beforeAll(() => {
-    const setup = setUp();
-    app = setup.app;
-    sourceRepository = setup.sourceRepository;
+    const appSetup = setup();
+    app = appSetup.app;
+    sourceRepository = appSetup.sourceRepository;
   });
 
   it("should return an empty list if no source is found", async () => {

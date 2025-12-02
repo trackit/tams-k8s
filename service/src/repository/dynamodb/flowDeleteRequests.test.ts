@@ -17,7 +17,7 @@ import { inject, register } from "../../di";
 import { dynamodbClientToken } from "./client";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const setUp = async (endpoint: string) => {
+const setup = async (endpoint: string) => {
   register(FlowDeleteRequestTableNameToken, {
     useValue: "flowDeleteRequest_table",
   });
@@ -41,7 +41,7 @@ describe("Testing DynamoDB repository", () => {
   beforeAll(async () => {
     dynamoContainer = new DynamoDBTestContainer();
     dynamoEndpoint = await dynamoContainer.start();
-    flowDeleteRequestRepository = await setUp(dynamoEndpoint);
+    flowDeleteRequestRepository = await setup(dynamoEndpoint);
   }, 300000);
 
   beforeEach(async () => {

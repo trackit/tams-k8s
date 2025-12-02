@@ -8,7 +8,7 @@ import { dynamodbClientToken } from "./client";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { InvalidPageTokenError } from "../../repository/errors";
 
-const setUp = async (endpoint: string) => {
+const setup = async (endpoint: string) => {
   register(SourceTableNameToken, { useValue: "source_table" });
   register(dynamodbClientToken, {
     useFactory: () => {
@@ -30,7 +30,7 @@ describe("Testing Sources DynamoDB repository", () => {
   beforeAll(async () => {
     dynamoContainer = new DynamoDBTestContainer();
     dynamoEndpoint = await dynamoContainer.start();
-    sourceRepository = await setUp(dynamoEndpoint);
+    sourceRepository = await setup(dynamoEndpoint);
   }, 300000);
 
   afterAll(async () => {

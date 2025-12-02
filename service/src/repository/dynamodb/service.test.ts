@@ -6,7 +6,7 @@ import { DDBServiceRepository, ServiceTableNameToken } from "./service";
 import { dynamodbClientToken } from "./client";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const setUp = async (endpoint: string) => {
+const setup = async (endpoint: string) => {
   register(ServiceTableNameToken, { useValue: "service_table" });
   register(dynamodbClientToken, {
     useFactory: () => {
@@ -28,7 +28,7 @@ describe("Testing Service DynamoDB repository", () => {
   beforeAll(async () => {
     dynamoContainer = new DynamoDBTestContainer();
     dynamoEndpoint = await dynamoContainer.start();
-    serviceRepository = await setUp(dynamoEndpoint);
+    serviceRepository = await setup(dynamoEndpoint);
   }, 300000);
 
   afterAll(async () => {
