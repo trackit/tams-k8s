@@ -1,13 +1,10 @@
-# Contributing to TAMS Kubernetes
+# Contributing to TAMS on Kubernetes
 
 Thank you for your interest in contributing to TAMS Kubernetes! This document provides guidelines and instructions for contributing to the project.
 
-## Code of Conduct
+## License
 
-- Be respectful and considerate of others
-- Welcome newcomers and help them learn
-- Focus on constructive feedback
-- Respect different viewpoints and experiences
+By contributing code to TAMS on Kubernetes, you warrant that you either have the rights to your contributions or have obtained the necessary permissions to license them under the [repository license](./LICENSE), ensuring that your code can be legally distributed under these terms.
 
 ## Getting Started
 
@@ -74,7 +71,6 @@ git checkout -b feature/your-feature-name
 
 #### TypeScript (Service)
 
-- Follow the existing code style
 - Use TypeScript strict mode
 - Add tests for new routes and functionality
 - Run `npm run build` to ensure the code compiles
@@ -84,7 +80,6 @@ git checkout -b feature/your-feature-name
 
 - Use clear, descriptive commit messages
 - Start with a verb in imperative mood following by ": " (e.g., "Add: ", "Fix: ", "Update: ")
-- Reference issue numbers when applicable (e.g., "Fix #123: ...")
 - Keep the first line under 72 characters
 - Add a detailed description if needed
 
@@ -95,8 +90,6 @@ Add: validation for Store CRD
 
 This change adds validation logic to ensure Store resources
 have required fields before processing.
-
-Fixes #456
 ```
 
 ## Pull Request Process
@@ -111,13 +104,13 @@ Fixes #456
 
 ### PR Checklist
 
-- [ ] Code follows the project's style guidelines
-- [ ] Self-review completed
-- [ ] Comments added for complex code
-- [ ] Documentation updated
-- [ ] Tests added/updated
-- [ ] All tests pass
-- [ ] No new warnings introduced
+- Code follows the project's style guidelines
+- Self-review completed
+- Comments added for complex code
+- Documentation updated
+- Tests added/updated
+- All tests pass
+- No new warnings introduced
 
 ## Testing
 
@@ -195,4 +188,4 @@ If you have questions, feel free to:
 - Open an issue for discussion
 - Contact the maintainers
 
-Thank you for contributing to TAMS Kubernetes!
+Thank you for contributing to TAMS on Kubernetes!
