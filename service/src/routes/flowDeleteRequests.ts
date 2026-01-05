@@ -1,16 +1,16 @@
-import { Response } from "express";
-import { ValidatedRequest } from "express-joi-validation";
+import { Response } from 'express';
+import { ValidatedRequest } from 'express-joi-validation';
 import {
   FlowDeleteRequest,
   flowDeleteRequestValidator,
   flowDeleteRequestsValidator,
   GetFlowDeleteRequestsPathParams,
   getFlowDeleteRequestsPathParamsValidator,
-} from "@tams-k8s/api";
-import { NotFoundHttpError, ParamsSchema, validator } from "./middlewares";
-import { Routes } from "./generic";
-import { flowDeleteRequestsRepositoryToken } from "../repository";
-import { inject } from "../di";
+} from '@tams-k8s/api';
+import { NotFoundHttpError, ParamsSchema, validator } from './middlewares';
+import { Routes } from './generic';
+import { flowDeleteRequestsRepositoryToken } from '../repository';
+import { inject } from '../di';
 
 export class FlowDeleteRequestsRoutes extends Routes {
   private readonly repository = inject(flowDeleteRequestsRepositoryToken);
@@ -21,13 +21,13 @@ export class FlowDeleteRequestsRoutes extends Routes {
     this.route.get(
       "/",
       validator.response(flowDeleteRequestsValidator),
-      this.listFlowDeleteRequests.bind(this)
+      this.listFlowDeleteRequests.bind(this),
     );
     this.route.get<any, FlowDeleteRequest>(
       "/:requestId",
       validator.params(getFlowDeleteRequestsPathParamsValidator),
       validator.response(flowDeleteRequestValidator),
-      this.getFlowDeleteRequest.bind(this)
+      this.getFlowDeleteRequest.bind(this),
     );
   }
 
@@ -35,12 +35,8 @@ export class FlowDeleteRequestsRoutes extends Routes {
     _: any,
     res: Response<FlowDeleteRequest[]>
   ) {
-    try {
       const requests = await this.repository.listFlowDeleteRequest();
       res.json(requests);
-    } catch (e) {
-      throw e;
-    }
   }
 
   private async getFlowDeleteRequest(

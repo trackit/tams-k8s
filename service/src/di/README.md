@@ -6,16 +6,6 @@ A typesafe dependency injection container implemented as a wrapper around Tsyrin
 
 Copy and paste this folder in you common library, and add it to your tsconfig.json.
 
-```json
-{
-  "paths": {
-    "@di-container": [
-      "./services/common/di-container/index"
-    ]
-  }
-}
-```
-
 This container is directly available through the alias `@di-container`, no installation is required.
 
 ## Usage
