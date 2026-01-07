@@ -1,12 +1,12 @@
 import request from "supertest";
-import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiFlowMother, FormatUrn } from "@tams-k8s/api";
 import { RepoFlowMother } from "../repository/flows.mother";
 import { inject, reset } from "../di";
 import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 import { setupApp } from "../utils/setupApp";
-import { FlowRepository, flowRepositoryToken } from "../repository";
+import { flowRepositoryToken } from "../repository";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 
 const setup = () => {
@@ -25,15 +25,9 @@ const setup = () => {
 };
 
 describe("Testing Flows routes using memory repository", () => {
-  let flowRepository: FlowRepository;
-  let app: any;
-
-  beforeEach(() => {
-    ({ app, flowRepository } = setup());
-  });
-
   describe("list flows tests", () => {
     it("should return the list of flows", async () => {
+      const { app, flowRepository } = setup();
       const flows = [
         RepoFlowMother.video("f2a4dd5f-8f3c-4a7c-9a29-9fd65a5b9c4e").build(),
         RepoFlowMother.audio("518f14c2-f940-4035-86ae-a34c16d47b3d").build(),
@@ -48,6 +42,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by source_id", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("f2a4dd5f-8f3c-4a7c-9a29-9fd65a5b9c4e")
           .withSourceId("0588c040-3b1a-4424-9146-6d4f33ce05cb")
@@ -69,6 +64,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by format type", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.audio("518f14c2-f940-4035-86ae-a34c16d47b3d").build(),
       );
@@ -84,6 +80,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by codec type", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("4f411a83-130e-48ea-b239-b1c32f8d9d2f")
           .withCodec("video/avc1")
@@ -101,6 +98,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by label type", async () => {
+      const { app, flowRepository } = setup();
       const flows = [
         RepoFlowMother.video("44ce8583-b7ea-4b44-a1cf-c458214de5c7")
           .withLabel("video-label")
@@ -119,6 +117,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by tag value", async () => {
+      const { app, flowRepository } = setup();
       const flows = [
         RepoFlowMother.video("81d881d8-da95-47e4-a033-90e86302b808")
           .withTags({ test: "yes" })
@@ -137,6 +136,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by tag existence", async () => {
+      const { app, flowRepository } = setup();
       const flows = [
         RepoFlowMother.video("81d881d8-da95-47e4-a033-90e86302b808")
           .withTags({ test: "yes" })
@@ -155,6 +155,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by tag non existence", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("00000000-0000-0000-0000-000000000000")
           .withTags({ nowanted: "yes" })
@@ -175,6 +176,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by frame_width", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("e4f5a6b7-c8d9-0123-ef01-345678901234")
           .withVideoEssenceParameters({
@@ -200,6 +202,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should filter the list of flows by frame_height", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("c2d3e4f5-a6b7-8901-cdef-123456789012").withFrameHeight(1250).build(),
       );
@@ -215,6 +218,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should ensure the filters are all exclusive", async () => {
+      const { app, flowRepository } = setup();
       await flowRepository.putFlow(
         RepoFlowMother.video("b825cf23-f0a1-4cb4-8e40-73964902a0fe")
           .withSourceId("9ff9c8d3-c1c2-428f-a270-ec1b6811249f")
@@ -233,6 +237,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should paginate result", async () => {
+      const { app, flowRepository } = setup();
       const flows = [
         RepoFlowMother.video("f2a4dd5f-8f3c-4a7c-9a29-9fd65a5b9c4e")
           .withSourceId("0588c040-3b1a-4424-9146-6d4f33ce05cb")
@@ -271,6 +276,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return an error if the provided page token is invalid", async () => {
+      const { app } = setup();
       const response = await request(app).get(`/flows?limit=2&page=invalid-token`);
 
       expect(response.status).toBe(400);
@@ -281,6 +287,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return a validation error if filters are invalid", async () => {
+      const { app } = setup();
       const response = await request(app).get(`/flows?unknown=test`);
 
       expect(response.status).toBe(400);
@@ -294,6 +301,7 @@ describe("Testing Flows routes using memory repository", () => {
 
   describe("get flow tests", () => {
     it("should return a flow", async () => {
+      const { app, flowRepository } = setup();
       const flow = RepoFlowMother.video().build();
       await flowRepository.putFlow(flow);
 
@@ -304,6 +312,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return an error if flow does not exist", async () => {
+      const { app } = setup();
       const response = await request(app).get(`/flows/06752034-9268-45c9-9c59-52e4c2f73dc8`);
 
       expect(response.status).toBe(404);
@@ -314,6 +323,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return validation error if flowId is not uuid", async () => {
+      const { app } = setup();
       const response = await request(app).get(`/flows/not-uuid`);
 
       expect(response.status).toBe(400);
@@ -331,6 +341,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should create a flow", async () => {
+      const { app, flowRepository } = setup();
       const flowNumber = await flowRepository.listFlows().then(({ flows }) => flows.length);
       const flowToCreate = ApiFlowMother.video()
         .withId("7cd39468-3777-4a76-a71f-cd5c53b9cb67")
@@ -353,6 +364,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return a validation error if flowId is not uuid", async () => {
+      const { app } = setup();
       const flowToCreate = ApiFlowMother.video()
         .withId("7cd39468-3777-4a76-a71f-cd5c53b9cb67")
         .build();
@@ -368,6 +380,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return a validation error if flowIds does not match", async () => {
+      const { app } = setup();
       const flowToCreate = ApiFlowMother.video()
         .withId("7cd39468-3777-4a76-a71f-cd5c53b9cb67")
         .build();
@@ -384,6 +397,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should return validation error if flow to update is invalid", async () => {
+      const { app } = setup();
       const flowToCreate = {
         id: "12fe66eb-bd38-4ed7-b5b9-38c5341f2e8b",
       };
@@ -400,6 +414,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should update an existing flow", async () => {
+      const { app, flowRepository } = setup();
       const flow = RepoFlowMother.video().build();
       await flowRepository.putFlow(flow);
       const flowToUpdate = ApiFlowMother.video()
@@ -423,6 +438,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should not update a readonly flow", async () => {
+      const { app, flowRepository } = setup();
       flowRepository.putFlow(RepoFlowMother.video().withReadOnly(true).build());
       const flowToUpdate = ApiFlowMother.video()
         .withReadOnly(true)
@@ -442,6 +458,7 @@ describe("Testing Flows routes using memory repository", () => {
     });
 
     it("should update and set readonly flow", async () => {
+      const { app, flowRepository } = setup();
       const flow = RepoFlowMother.video().build();
       await flowRepository.putFlow(flow);
       const flowToUpdate = ApiFlowMother.video()

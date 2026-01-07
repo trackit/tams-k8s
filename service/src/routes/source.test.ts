@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { setupApp } from "../utils/setupApp";
 import request from "supertest";
 import { FormatUrn, SourceMother } from "@tams-k8s/api";
 import { inject, reset } from "../di";
-import { SourceRepository, sourceRepositoryToken } from "../repository";
+import { sourceRepositoryToken } from "../repository";
 import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 
@@ -23,16 +23,8 @@ const setup = () => {
 };
 
 describe("Testing Sources routes using memory repository", () => {
-  let app: any;
-  let sourceRepository: SourceRepository;
-
-  beforeEach(() => {
-    const appSetup = setup();
-    app = appSetup.app;
-    sourceRepository = appSetup.sourceRepository;
-  });
-
   it("should return an empty list if no source is found", async () => {
+    const { app } = setup();
     const response = await request(app).get("/sources");
 
     expect(response.status).toBe(200);
@@ -41,6 +33,7 @@ describe("Testing Sources routes using memory repository", () => {
 
   describe("all sources", () => {
     it("should return all sources", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -67,6 +60,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should filter by label", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -88,6 +82,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should filter by format", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -106,6 +101,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should filter by tag", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ tag: "test" })
@@ -130,6 +126,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should filter correctly using haveTags and doesNotHaveTags", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ tag: "test" })
@@ -155,6 +152,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should filter with combined: format + tag", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -184,6 +182,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return only {limit} sources and NextKey should point to correct source", async () => {
+      const { app, sourceRepository } = setup();
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -239,6 +238,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return 400 for invalid page token", async () => {
+      const { app } = setup();
       const response = await request(app).get("/sources?page=%%%INVALID%%%");
 
       expect(response.status).toBe(400);
@@ -247,12 +247,14 @@ describe("Testing Sources routes using memory repository", () => {
 
   describe("source by id", () => {
     it("should return status code 404 if source doesn't exist", async () => {
+      const { app } = setup();
       const response = await request(app).get("/sources/fcbef7e2-a6b2-486d-8f4e-a408504afcf9");
 
       expect(response.status).toBe(404);
     });
 
     it("should return the source if present", async () => {
+      const { app, sourceRepository } = setup();
       await sourceRepository.putSource(
         SourceMother.created()
           .withId("11111111-1111-1111-1111-111111111111")
@@ -271,6 +273,7 @@ describe("Testing Sources routes using memory repository", () => {
 
   describe("source descriptions", () => {
     it("should return 404 if the requested source doesn't exist", async () => {
+      const { app } = setup();
       const response = await request(app).get(
         "/sources/00000000-0000-0000-0000-000000000000/description",
       );
@@ -279,6 +282,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return the description of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Description for testing purpose")
@@ -294,6 +298,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should update the description of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Original description")
@@ -311,6 +316,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should delete the description of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Description to be deleted")
@@ -329,6 +335,7 @@ describe("Testing Sources routes using memory repository", () => {
 
   describe("source label", () => {
     it("should return 404 if the requested source doesn't exist", async () => {
+      const { app } = setup();
       const response = await request(app).get(
         "/sources/00000000-0000-0000-0000-000000000000/label",
       );
@@ -337,6 +344,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return the label of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Testing")
@@ -352,6 +360,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should update the label of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Original label")
@@ -369,6 +378,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should delete the label of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Label to be deleted")
@@ -385,6 +395,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return 404 if the requested source doesn't have a label", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel(undefined)
@@ -401,12 +412,14 @@ describe("Testing Sources routes using memory repository", () => {
 
   describe("source tags", () => {
     it("should return 404 if the requested source doesn't exist", async () => {
+      const { app } = setup();
       const response = await request(app).get("/sources/00000000-0000-0000-0000-000000000000/tags");
 
       expect(response.status).toBe(404);
     });
 
     it("should return the tags of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -420,6 +433,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return the value of a specific tag for string", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -435,6 +449,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return the value of a specific tag for array of string", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -450,6 +465,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should return 404 if the value of a specific tag doesn't exist", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -464,6 +480,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should create the tag for the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -481,6 +498,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should update the tag of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ existing: "original" })
@@ -498,6 +516,7 @@ describe("Testing Sources routes using memory repository", () => {
     });
 
     it("should delete the tag of the requested source", async () => {
+      const { app, sourceRepository } = setup();
       const source = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
