@@ -37,7 +37,7 @@ export class SourceMother {
     return this;
   }
 
-  withLabel(label: string): SourceMother {
+  withLabel(label: string | undefined): SourceMother {
     this.source.label = label;
     return this;
   }
@@ -72,9 +72,7 @@ export class SourceMother {
     return this;
   }
 
-  withSourceCollection(
-    collection: { id: string; role: string }[]
-  ): SourceMother {
+  withSourceCollection(collection: { id: string; role: string }[]): SourceMother {
     this.source.source_collection = collection;
     return this;
   }

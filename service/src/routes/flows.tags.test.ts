@@ -1,8 +1,8 @@
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import request from "supertest";
 import { RepoFlowMother } from "../repository/flows.mother";
 import { reset, inject } from "../di";
-import { Flow, FlowRepository, flowRepositoryToken } from "../repository";
+import { FlowRepository, flowRepositoryToken } from "../repository";
 import { registerConfig, registerMemoryInfra } from "../utils/registerInfra";
 import { Config } from "../configParser";
 import { setupApp } from "../utils/setupApp";
@@ -26,25 +26,20 @@ describe("Testing Flows tag routes using memory repository", () => {
   let flowRepository: FlowRepository;
   let app: any;
 
-  beforeAll(() => {
+  beforeEach(() => {
     ({ app, flowRepository } = setup());
   });
 
   describe("list flow tags test", () => {
-    let flow: Flow;
-
-    beforeAll(async () => {
-      flow = RepoFlowMother.video("d610e75b-9d6c-4579-b34a-c341475dc7e2")
+    it("should list the tags for a flow", async () => {
+      const flow = RepoFlowMother.video("d610e75b-9d6c-4579-b34a-c341475dc7e2")
         .withTags({
           test: "ok",
           another: "yes",
         })
         .build();
-
       await flowRepository.putFlow(flow);
-    });
 
-    it("should list the tags for a flow", async () => {
       const response = await request(app).get(
         "/flows/d610e75b-9d6c-4579-b34a-c341475dc7e2/tags"
       );
@@ -81,19 +76,15 @@ describe("Testing Flows tag routes using memory repository", () => {
   });
 
   describe("get one tag for a flow test", () => {
-    let flow: Flow;
-
-    beforeAll(async () => {
-      flow = RepoFlowMother.video("d610e75b-9d6c-4579-b34a-c341475dc7e2")
+    it("should return the tag for a flow", async () => {
+      const flow = RepoFlowMother.video("d610e75b-9d6c-4579-b34a-c341475dc7e2")
         .withTags({
           test: "ok",
           another: "yes",
         })
         .build();
       await flowRepository.putFlow(flow);
-    });
 
-    it("should return the tag for a flow", async () => {
       const response = await request(app).get(
         "/flows/d610e75b-9d6c-4579-b34a-c341475dc7e2/tags/test"
       );
@@ -116,6 +107,14 @@ describe("Testing Flows tag routes using memory repository", () => {
     });
 
     it("should return an error if the tag does not exist", async () => {
+      const flow = RepoFlowMother.video("d610e75b-9d6c-4579-b34a-c341475dc7e2")
+        .withTags({
+          test: "ok",
+          another: "yes",
+        })
+        .build();
+      await flowRepository.putFlow(flow);
+
       const response = await request(app).get(
         "/flows/d610e75b-9d6c-4579-b34a-c341475dc7e2/tags/non-existing"
       );
