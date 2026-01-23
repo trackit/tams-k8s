@@ -5,7 +5,7 @@ import { timerangeValidator } from './timerange';
 
 export const listFlowsQueryParamsValidator = Joi.object<GetFlowsQueryParamsRequest>({
     source_id: Joi.string().uuid(),
-    timerange: timerangeValidator,
+    timerange: timerangeValidator.default('_'),
     format: Joi.string().valid(...Object.values(FormatUrn)),
     codec: codecValidator,
     label: Joi.string(),

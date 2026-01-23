@@ -92,6 +92,11 @@ export class RepoFlowMother {
     return this;
   }
 
+  withTimerange(timerange: string) {
+    this.flow.timerange = timerange;
+    return this;
+  }
+
   build(): Flow {
     return this.flow;
   }

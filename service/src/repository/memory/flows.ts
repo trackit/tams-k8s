@@ -1,4 +1,4 @@
-import { FormatUrn } from "@tams-k8s/api";
+import { FormatUrn, parseTimerange, timerangesOverlap } from "@tams-k8s/api";
 import Joi from "joi";
 import { InvalidPageTokenError } from "../errors";
 import type {
@@ -33,13 +33,22 @@ export class MemoryFlowsRepository implements FlowRepository {
     return this.flows;
   }
 
-  // TODO(arthur): implement timerange filtering
   async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
     let filteredFlows = this.flows;
     if (filters?.sourceId) {
       filteredFlows = filteredFlows.filter(
         ({ sourceId }) => sourceId === filters.sourceId
       );
+    }
+    if (filters?.timerange) {
+      // TODO(arthur): Compute timerange from flow segments
+      filteredFlows = filteredFlows.filter((flow) => {
+        if (!flow.timerange) return false;
+        const flowInterval = parseTimerange(flow.timerange);
+        if (!flowInterval) return false;
+        if (!filters.timerange) return false;
+        return timerangesOverlap(filters.timerange, flowInterval);
+      });
     }
     if (filters?.flowFormat) {
       filteredFlows = filteredFlows.filter(

@@ -5,13 +5,14 @@ import {
   ComponentType,
   FormatUrn,
   InterlaceMode,
+  TimerangeInterval,
   TransferCharacteristics,
 } from "@tams-k8s/api";
 import { createInjectionToken } from "../di";
 
 export interface ListFlowsFilters {
   sourceId?: string;
-  timerange?: string;
+  timerange: TimerangeInterval | null;
   flowFormat?: string;
   codec?: string;
   label?: string;

@@ -12,6 +12,9 @@ import {
   listFlowsQueryParamsValidator,
   PutFlowPathParams,
   putFlowPathParamsValidator,
+  parseTimerange,
+  intersectTimeranges,
+  formatTimerange,
 } from "@tams-k8s/api";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { InvalidPageTokenError } from "../repository/errors";
@@ -55,21 +58,21 @@ export class FlowsRoutes extends Routes {
       "/",
       validator.query(listFlowsQueryParamsValidator),
       validator.response(flowsValidator),
-      this.listFlows.bind(this)
+      this.listFlows.bind(this),
     );
     this.route.get<any, Flow>(
       "/:flowId",
       validator.params(getFlowPathParamsValidator),
       validator.query(getFlowQueryParamsValidator.required()),
       validator.response(flowValidator.required()),
-      this.getFlow.bind(this)
+      this.getFlow.bind(this),
     );
     this.route.put<any, Flow>(
       "/:flowId",
       validator.params(putFlowPathParamsValidator),
       validator.body(flowValidator.required()),
       validator.response(flowValidator.required()),
-      this.putFlow.bind(this)
+      this.putFlow.bind(this),
     );
     this.route.use(flowTagsRoutes.getRoutes());
     this.route.use(flowDescriptionRoutes.getRoutes());
@@ -83,7 +86,7 @@ export class FlowsRoutes extends Routes {
 
   private buildNextPageUrl(
     req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>,
-    nextPageToken: string
+    nextPageToken: string,
   ): string {
     const url = new URL(`${req.protocol}://${req.host}${req.originalUrl}`);
     url.searchParams.set("page", nextPageToken);
@@ -92,7 +95,7 @@ export class FlowsRoutes extends Routes {
 
   private async listFlows(
     req: ValidatedRequest<QSSchema<GetFlowsQueryParamsRequest>>,
-    res: Response<Flow[]>
+    res: Response<Flow[]>,
   ) {
     const tags: Record<string, string> = {};
     const haveTags: string[] = [];
@@ -112,7 +115,7 @@ export class FlowsRoutes extends Routes {
     try {
       const list = await this.repository.listFlows({
         sourceId: req.query.source_id,
-        timerange: req.query.timerange,
+        timerange: parseTimerange(req.query.timerange),
         flowFormat: req.query.format,
         codec: req.query.codec,
         label: req.query.label,
@@ -130,7 +133,7 @@ export class FlowsRoutes extends Routes {
         res.header("X-Paging-NextKey", list.nextPageToken);
         res.header(
           "Link",
-          `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`
+          `<${this.buildNextPageUrl(req, list.nextPageToken)}>; rel="next"`,
         );
       }
       res.json(list.flows.map((flow) => FlowAdapter.toApi(flow)));
@@ -142,21 +145,42 @@ export class FlowsRoutes extends Routes {
     }
   }
 
-  // TODO(arthur): implement query params (timerange and include_timerange)
   private async getFlow(
     req: ValidatedRequest<
       ParamsQSSchema<GetFlowPathParams, GetFlowQueryParamsRequest>
     >,
-    res: Response<Flow>
+    res: Response<Flow>,
   ) {
     const flow = await this.repository.getFlowById(req.params.flowId);
     if (flow === null) throw new NotFoundHttpError("Flow could not be found");
-    res.json(FlowAdapter.toApi(flow));
+
+    let apiFlow = FlowAdapter.toApi(flow);
+
+    if (req.query.timerange && apiFlow.timerange) {
+      const queryInterval = parseTimerange(req.query.timerange);
+      const flowInterval = parseTimerange(apiFlow.timerange);
+
+      if (queryInterval && flowInterval) {
+        const intersection = intersectTimeranges(queryInterval, flowInterval);
+        if (intersection) {
+          apiFlow = { ...apiFlow, timerange: formatTimerange(intersection) };
+        } else {
+          apiFlow = { ...apiFlow, timerange: undefined };
+        }
+      }
+    }
+
+    if (req.query.include_timerange === false) {
+      const { timerange, ...flowWithoutTimerange } = apiFlow;
+      res.json(flowWithoutTimerange);
+    } else {
+      res.json(apiFlow);
+    }
   }
 
   private async putFlow(
     req: ValidatedRequest<ParamsBodySchema<PutFlowPathParams, Flow>>,
-    res: Response<Flow>
+    res: Response<Flow>,
   ) {
     if (req.params.flowId !== req.body.id) {
       throw new BadRequestHttpError("flow ID does not match URL parameter");

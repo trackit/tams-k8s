@@ -482,4 +482,232 @@ describe("Testing Flows routes using memory repository", () => {
       expect(updatedFlow?.codec).toBe("video/example");
     });
   });
+
+  describe("timerange filtering tests", () => {
+    describe("list flows with timerange filter", () => {
+      it("should filter flows by overlapping timerange", async () => {
+        const { app, flowRepository } = setup();
+        const flow1Id = "10000000-0000-0000-0000-000000000001";
+        const flow2Id = "10000000-0000-0000-0000-000000000002";
+        const flow3Id = "10000000-0000-0000-0000-000000000003";
+
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow1Id)
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow2Id)
+            .withTimerange("[1500:2500]")
+            .build()
+        );
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow3Id)
+            .withTimerange("[3000:4000]")
+            .build()
+        );
+
+        const response = await request(app).get("/flows?timerange=[1800:2200]");
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(2);
+        expect(response.body.map((f: any) => f.id)).toContain(flow1Id);
+        expect(response.body.map((f: any) => f.id)).toContain(flow2Id);
+        expect(response.body.map((f: any) => f.id)).not.toContain(flow3Id);
+      });
+
+      it("should return empty array when no flows overlap with timerange", async () => {
+        const { app, flowRepository } = setup();
+        await flowRepository.putFlow(
+          RepoFlowMother.video("20000000-0000-0000-0000-000000000001")
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+        await flowRepository.putFlow(
+          RepoFlowMother.video("20000000-0000-0000-0000-000000000002")
+            .withTimerange("[2100:3000]")
+            .build()
+        );
+
+        const response = await request(app).get("/flows?timerange=[5000:6000]");
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(0);
+      });
+
+      it("should handle exclusive boundary timeranges", async () => {
+        const { app, flowRepository } = setup();
+        await flowRepository.putFlow(
+          RepoFlowMother.video("30000000-0000-0000-0000-000000000001")
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+
+        const response = await request(app).get("/flows?timerange=(2000:3000)");
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(0);
+      });
+
+      it("should handle inclusive boundary overlap", async () => {
+        const { app, flowRepository } = setup();
+        await flowRepository.putFlow(
+          RepoFlowMother.video("40000000-0000-0000-0000-000000000001")
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+
+        const response = await request(app).get("/flows?timerange=[2000:3000]");
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(1);
+      });
+
+      it("should combine timerange filter with other filters", async () => {
+        const { app, flowRepository } = setup();
+        const flow1Id = "50000000-0000-0000-0000-000000000001";
+        const flow2Id = "50000000-0000-0000-0000-000000000002";
+        const source1Id = "50000000-0000-0000-0000-000000000011";
+        const source2Id = "50000000-0000-0000-0000-000000000012";
+
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow1Id)
+            .withSourceId(source1Id)
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow2Id)
+            .withSourceId(source2Id)
+            .withTimerange("[1500:2500]")
+            .build()
+        );
+
+        const response = await request(app).get(
+          `/flows?timerange=[1800:2200]&source_id=${source1Id}`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(1);
+        expect(response.body[0].id).toBe(flow1Id);
+      });
+
+      it("should exclude flows without timerange when filtering by timerange", async () => {
+        const { app, flowRepository } = setup();
+        const flow1Id = "60000000-0000-0000-0000-000000000001";
+        const flow2Id = "60000000-0000-0000-0000-000000000002";
+
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow1Id)
+            .withTimerange("[1000:2000]")
+            .build()
+        );
+        await flowRepository.putFlow(
+          RepoFlowMother.video(flow2Id).build()
+        );
+
+        const response = await request(app).get("/flows?timerange=[1500:1800]");
+
+        expect(response.status).toBe(200);
+        expect(response.body.length).toBe(1);
+        expect(response.body[0].id).toBe(flow1Id);
+      });
+    });
+
+    describe("get flow with timerange query parameters", () => {
+      it("should exclude timerange field when include_timerange=false", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "70000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId)
+          .withTimerange("[1000:2000]")
+          .build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?include_timerange=false`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBeUndefined();
+      });
+
+      it("should include timerange field when include_timerange=true", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "80000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId)
+          .withTimerange("[1000:2000]")
+          .build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?include_timerange=true`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBe("[1000:2000]");
+      });
+
+      it("should filter flow timerange with query timerange", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "90000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId)
+          .withTimerange("[1000:3000]")
+          .build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?timerange=[1500:2500]`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBe("[1500:2500]");
+      });
+
+      it("should return undefined timerange when no overlap", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "a0000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId)
+          .withTimerange("[1000:2000]")
+          .build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?timerange=[3000:4000]`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBeUndefined();
+      });
+
+      it("should apply both timerange filter and include_timerange=false", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "b0000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId)
+          .withTimerange("[1000:3000]")
+          .build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?timerange=[1500:2500]&include_timerange=false`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBeUndefined();
+      });
+
+      it("should handle flow without timerange field", async () => {
+        const { app, flowRepository } = setup();
+        const flowId = "c0000000-0000-0000-0000-000000000001";
+        const flow = RepoFlowMother.video(flowId).build();
+        await flowRepository.putFlow(flow);
+
+        const response = await request(app).get(
+          `/flows/${flowId}?timerange=[1500:2500]`
+        );
+
+        expect(response.status).toBe(200);
+        expect(response.body.timerange).toBeUndefined();
+      });
+    });
+  });
 });

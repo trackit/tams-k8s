@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import Joi from "joi";
+import { parseTimerange } from '@tams-k8s/api';
 import { InvalidPageTokenError } from "../errors";
 import type {
   ContainerMapping,
@@ -96,15 +97,23 @@ export class DDBFlowsRepository implements FlowRepository {
   }
 
   private flowToRecord(flow: Flow): Record<string, AttributeValue> {
-    return marshall(
-      {
-        ...flow,
-        created: flow.created?.toString(),
-        metadataUpdated: flow.metadataUpdated?.toString(),
-        segmentsUpdated: flow.segmentsUpdated?.toString(),
-      },
-      { removeUndefinedValues: true }
-    );
+    const record: any = {
+      ...flow,
+      created: flow.created?.toString(),
+      metadataUpdated: flow.metadataUpdated?.toString(),
+      segmentsUpdated: flow.segmentsUpdated?.toString(),
+    };
+
+    // TODO(arthur): Compute this value from flows segment
+    if (flow.timerange) {
+      const interval = parseTimerange(flow.timerange);
+      if (interval) {
+        record.timerangeStart = interval.start;
+        record.timerangeEnd = interval.end;
+      }
+    }
+
+    return marshall(record, { removeUndefinedValues: true });
   }
 
   private recordToFlow(record: Record<string, AttributeValue>): Flow {
@@ -163,7 +172,6 @@ export class DDBFlowsRepository implements FlowRepository {
     }
   }
 
-  // TODO(arthur): implement timerange filtering
   async listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse> {
     let filterExpr: string[] = [];
     const exprAttrVal: Record<string, AttributeValue> = {};
@@ -178,6 +186,20 @@ export class DDBFlowsRepository implements FlowRepository {
     if (filters?.sourceId) {
       filterExpr.push("sourceId = :sourceId");
       exprAttrVal[":sourceId"] = { S: filters.sourceId };
+    }
+    if (filters?.timerange) {
+      // Check for overlap: timerangeStart < queryEnd AND timerangeEnd > queryStart
+      // Adjust for inclusive/exclusive boundaries
+      const queryStartComparator = filters.timerange.startInclusive ? "<=" : "<";
+      const queryEndComparator = filters.timerange.endInclusive ? "<=" : "<";
+
+      filterExpr.push(
+        `(attribute_exists(timerangeStart) AND attribute_exists(timerangeEnd) AND ` +
+        `timerangeStart ${queryStartComparator} :queryEnd AND ` +
+        `timerangeEnd ${queryEndComparator === "<=" ? ">" : ">="} :queryStart)`
+      );
+      exprAttrVal[":queryStart"] = { N: filters.timerange.start.toString() };
+      exprAttrVal[":queryEnd"] = { N: filters.timerange.end.toString() };
     }
     if (filters?.flowFormat) {
       filterExpr.push("flowFormat = :format");
