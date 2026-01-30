@@ -4,3 +4,4 @@ export * from "./mediaObjects";
 export * from "./service";
 export * from "./source";
 export * from "./client";
+export * from "./segments";

@@ -22,6 +22,7 @@ import { FlowsLabel } from "./flows.label";
 import { FlowsMaxBitRate } from "./flows.maxBitRate";
 import { FlowMediaStorageRoutes } from "./flows.mediaStorage";
 import { FlowsReadOnly } from "./flows.readOnly";
+import { FlowsSegments } from "./flows.segments";
 import { FlowsTags } from "./flows.tags";
 import {
   BadRequestHttpError,
@@ -50,6 +51,7 @@ export class FlowsRoutes extends Routes {
     const flowMaxBitRateRoutes = new FlowsMaxBitRate();
     const flowAvgBitRateRoutes = new FlowsAvgBitRate();
     const flowMediaStorageRoutes = new FlowMediaStorageRoutes();
+    const flowSegmentsRoutes = new FlowsSegments();
 
     this.route.get(
       "/",
@@ -79,6 +81,7 @@ export class FlowsRoutes extends Routes {
     this.route.use(flowMaxBitRateRoutes.getRoutes());
     this.route.use(flowAvgBitRateRoutes.getRoutes());
     this.route.use(flowMediaStorageRoutes.getRoutes());
+    this.route.use(flowSegmentsRoutes.getRoutes());
   }
 
   private buildNextPageUrl(

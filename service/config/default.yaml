@@ -1,6 +1,7 @@
 database:
   type: dynamodb
   flowTableName: 'k8s-tams-test'
+  segmentTableName: 'k8s-tams-test-segment'
   serviceTableName: 'k8s-tams-test-service'
   sourceTableName: 'k8s-tams-test-source'
   mediaObjectTableName: 'k8s-tams-test-media-object'

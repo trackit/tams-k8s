@@ -4,6 +4,7 @@ import {
   flowDeleteRequestsRepositoryToken,
   flowRepositoryToken,
   mediaObjectRepositoryToken,
+  segmentRepositoryToken,
   serviceRepositoryToken,
   sourceRepositoryToken,
 } from "../repository";
@@ -14,12 +15,14 @@ import {
   DDBServiceRepository,
   DDBFlowsRepository,
   DDBMediaObjectsRepository,
+  DDBSegmentsRepository,
 } from "../repository/dynamodb";
 import { ensureDynamoTables } from "../repository/dynamodb/client";
 import {
   MemoryFlowDeleteRequestsRepository,
   MemoryFlowsRepository,
   MemoryMediaObjectRepository,
+  MemorySegmentsRepository,
   MemoryServiceRepository,
   MemorySourceRepository,
 } from "../repository/memory";
@@ -55,6 +58,10 @@ export const registerDynamoInfra = () => {
   register(serviceRepositoryToken, {
     useClass: DDBServiceRepository,
   });
+
+  register(segmentRepositoryToken, {
+    useClass: DDBSegmentsRepository,
+  });
 };
 
 export const registerMemoryInfra = () => {
@@ -76,6 +83,10 @@ export const registerMemoryInfra = () => {
 
   register(serviceRepositoryToken, {
     useValue: new MemoryServiceRepository(),
+  });
+
+  register(segmentRepositoryToken, {
+    useValue: new MemorySegmentsRepository(),
   });
 };
 
