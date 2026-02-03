@@ -42,7 +42,7 @@ export class FlowsSegments extends Routes {
     this.route.post<any, void | SegmentBulkFailureResponse>(
       "/:flowId/segments",
       validator.params(segmentsPathParamsValidator),
-      validator.body(segmentOrArrayValidator),
+      validator.body(segmentOrArrayValidator.required()),
       this.createSegments.bind(this)
     );
 

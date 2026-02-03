@@ -4,10 +4,12 @@ import {
   CreateTableCommand,
   DynamoDBClient,
   QueryCommand,
+  ResourceNotFoundException,
   WriteRequest,
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import Joi from "joi";
+import { catchError } from '../../helper';
 import { InvalidPageTokenError } from "../errors";
 import type {
   CreateSegmentsResult,
@@ -174,7 +176,7 @@ export class DDBSegmentsRepository implements SegmentRepository {
       });
     }
 
-    const resp = await this.client.send(
+    const [error, resp] = await catchError(this.client.send(
       new QueryCommand({
         TableName: this.tableName,
         KeyConditionExpression: "flowId = :flowId",
@@ -188,7 +190,14 @@ export class DDBSegmentsRepository implements SegmentRepository {
         ExclusiveStartKey: exclusiveStartKey,
         ScanIndexForward: !filters.reverseOrder,
       })
-    );
+    ));
+
+    if (error) {
+      if (error instanceof ResourceNotFoundException) {
+        return { segments: [], limit: filters.limit, nextPageToken: undefined };
+      }
+      throw error;
+    }
 
     const segments = !resp.Items
       ? []
