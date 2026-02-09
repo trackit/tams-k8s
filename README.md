@@ -5,9 +5,8 @@
 </p>
 
 <p align="center">
-  <b>Learn more in this <a href="https://trackit.io/">blog post</a></b>
+  <b>Learn more about TAMS in this <a href="https://medium.com/trackit/tams-on-kubernetes-architecting-cloud-agnostic-time-addressable-media-storage-13355f3371ab">blog post</a></b>
 </p>
-<!-- Add real article's link -->
 
 ## Table of contents
 
