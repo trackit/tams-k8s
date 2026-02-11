@@ -271,6 +271,80 @@ describe("Testing Sources routes using memory repository", () => {
     });
   });
 
+  describe("put source", () => {
+    it("should return a validation error if sourceId is not uuid", async () => {
+      const { app } = setup();
+      const sourceToCreate = SourceMother.created();
+
+      const response = await request(app).put("/sources/not-uuid").send(sourceToCreate);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        message: 'ValidationError: "sourceId" must be a valid GUID',
+        type: "validation_error",
+        where: "params",
+      });
+    });
+
+    it("should return a validation error if sourceIds does not match", async () => {
+      const { app } = setup();
+      const sourceToCreate = SourceMother.created().withId("11111111-1111-1111-1111-111111111111").build();
+
+      const response = await request(app).put("/sources/22222222-2222-2222-2222-222222222222").send(sourceToCreate);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        message: "Bad request: source ID does not match URL parameter",
+        type: "bad_request",
+      });
+    });
+
+    it("should return validation error if source to update is invalid", async () => {
+      const { app } = setup();
+      const sourceToCreate = SourceMother.invalid().build();
+
+      const response = await request(app).put("/sources/11111111-1111-1111-1111-111111111111").send(sourceToCreate);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        message: 'ValidationError: "format" is required',
+        type: "validation_error",
+        where: "body",
+      });
+    });
+
+    it("should create a source", async () => {
+      const { app } = setup();
+      const sourceToCreate = SourceMother.created().withFormat(FormatUrn.VIDEO).build();
+
+      const response = await request(app).put("/sources/00000000-0000-0000-0000-000000000000").send(sourceToCreate);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        ...sourceToCreate,
+        id: "00000000-0000-0000-0000-000000000000",
+        format: FormatUrn.VIDEO,
+      });
+    });
+
+    it("should update an existing source", async () => {
+      const { app, sourceRepository } = setup();
+      const sourceToCreate = SourceMother.created().build();
+      await sourceRepository.putSource(sourceToCreate);
+      const sourceToUpdate = SourceMother.created().withFormat(FormatUrn.VIDEO).withDescription("Updated source").build();
+
+      const response = await request(app).put("/sources/00000000-0000-0000-0000-000000000000").send(sourceToUpdate);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({
+        ...sourceToUpdate,
+        id: "00000000-0000-0000-0000-000000000000",
+        format: FormatUrn.VIDEO,
+        description: "Updated source",
+      });
+    });
+  });
+
   describe("source descriptions", () => {
     it("should return 404 if the requested source doesn't exist", async () => {
       const { app } = setup();

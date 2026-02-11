@@ -19,6 +19,13 @@ export class SourceMother {
     });
   }
 
+  static invalid(): SourceMother {
+    return new SourceMother({
+      id: "00000000-0000-0000-0000-000000000000",
+      format: undefined as unknown as FormatUrn,
+    });
+  }
+
   constructor(source: Source) {
     this.source = source;
   }
