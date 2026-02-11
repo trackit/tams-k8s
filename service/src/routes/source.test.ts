@@ -274,7 +274,7 @@ describe("Testing Sources routes using memory repository", () => {
   describe("put source", () => {
     it("should return a validation error if sourceId is not uuid", async () => {
       const { app } = setup();
-      const sourceToCreate = SourceMother.created();
+      const sourceToCreate = SourceMother.created().build();
 
       const response = await request(app).put("/sources/not-uuid").send(sourceToCreate);
 
@@ -303,7 +303,7 @@ describe("Testing Sources routes using memory repository", () => {
       const { app } = setup();
       const sourceToCreate = SourceMother.invalid().build();
 
-      const response = await request(app).put("/sources/11111111-1111-1111-1111-111111111111").send(sourceToCreate);
+      const response = await request(app).put("/sources/00000000-0000-0000-0000-000000000000").send(sourceToCreate);
 
       expect(response.status).toBe(400);
       expect(response.body).toEqual({
