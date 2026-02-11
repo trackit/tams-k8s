@@ -6,6 +6,7 @@ import {
     DeleteFlowLabelPathParams,
     DeleteFlowMaxBitRatePathParams,
     DeleteFlowTagPathParams,
+    DeleteFlowPathParams,
     GetFlowAvgBitRatePathParams,
     GetFlowDescriptionPathParams,
     GetFlowFlowCollectionPathParams,
@@ -31,6 +32,10 @@ export const putFlowPathParamsValidator = Joi.object<PutFlowPathParams>({
 });
 
 export const getFlowPathParamsValidator = Joi.object<GetFlowPathParams>({
+    flowId: Joi.string().uuid().required(),
+});
+
+export const deleteFlowPathParamsValidator = Joi.object<DeleteFlowPathParams>({
     flowId: Joi.string().uuid().required(),
 });
 

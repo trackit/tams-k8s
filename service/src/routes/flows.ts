@@ -12,6 +12,8 @@ import {
   listFlowsQueryParamsValidator,
   PutFlowPathParams,
   putFlowPathParamsValidator,
+  deleteFlowPathParamsValidator,
+  DeleteFlowPathParams,
 } from "@tams-k8s/api";
 import { FlowAdapter } from "../repository/adapters/flow.adapter";
 import { InvalidPageTokenError } from "../repository/errors";
@@ -29,6 +31,7 @@ import {
   NotFoundHttpError,
   ParamsBodySchema,
   ParamsQSSchema,
+  ParamsSchema,
   QSSchema,
   validator,
 } from "./middlewares";
@@ -70,6 +73,11 @@ export class FlowsRoutes extends Routes {
       validator.body(flowValidator.required()),
       validator.response(flowValidator.required()),
       this.putFlow.bind(this)
+    );
+    this.route.delete<any, void>(
+      "/:flowId",
+      validator.params(deleteFlowPathParamsValidator),
+      this.deleteFlow.bind(this)
     );
     this.route.use(flowTagsRoutes.getRoutes());
     this.route.use(flowDescriptionRoutes.getRoutes());
@@ -181,5 +189,22 @@ export class FlowsRoutes extends Routes {
 
     const flow = await this.repository.putFlow(flowToPut);
     res.json(FlowAdapter.toApi(flow));
+  }
+
+  private async deleteFlow(
+    req: ValidatedRequest<ParamsSchema<DeleteFlowPathParams>>,
+    res: Response<void>
+  ) {
+    if (req.params.flowId !== req.body.id)
+      throw new BadRequestHttpError("flow ID does not match URL parameter");
+    const currentflow = await this.repository.getFlowById(req.params.flowId);
+
+    if (currentflow === null) 
+      throw new NotFoundHttpError("Flow could not be found");
+    if (currentflow.readOnly === true)
+      throw new ForbiddenHttpError("Flow is in read only mode");
+
+    await this.repository.deleteFlow(currentflow.flowId);
+    res.sendStatus(204);
   }
 }
