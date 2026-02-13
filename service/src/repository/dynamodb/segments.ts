@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import Joi from "joi";
+import { parseTimerange } from '@tams-k8s/api';
 import { catchError } from '../../helper';
 import { InvalidPageTokenError } from "../errors";
 import type {
@@ -67,24 +68,14 @@ export class DDBSegmentsRepository implements SegmentRepository {
   }
 
   private segmentToRecord(segment: Segment): Record<string, AttributeValue> {
-    const timerange = segment.timerange;
-    let timerangeStart: number | undefined;
-    let timerangeEnd: number | undefined;
-
-    // TODO: Use timerange utilities when PR #27 is merged
-    // For now, extract numbers using regex
-    const match = timerange.match(/(-?\d+):(-?\d+)/);
-    if (match) {
-      timerangeStart = parseInt(match[1], 10);
-      timerangeEnd = parseInt(match[2], 10);
-    }
+    const tr = parseTimerange(segment.timerange);
 
     const record: Record<string, any> = {
       flowId: segment.flowId,
       objectId: segment.objectId,
       timerange: segment.timerange,
-      ...(timerangeStart !== undefined && { timerangeStart }),
-      ...(timerangeEnd !== undefined && { timerangeEnd }),
+      ...(tr?.start !== undefined && { timerangeStart: tr.start }),
+      ...(tr?.end !== undefined && { timerangeEnd: tr.end }),
       ...(segment.tsOffset && { tsOffset: segment.tsOffset }),
       ...(segment.lastDuration && { lastDuration: segment.lastDuration }),
       ...(segment.objectTimerange && {

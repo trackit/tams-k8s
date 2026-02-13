@@ -141,6 +141,35 @@ export const ensureDynamoTables = async (): Promise<void> => {
     );
   });
 
+  await ensureTableExists(client, config.segmentTableName, async () => {
+    await client.send(
+      new CreateTableCommand({
+        TableName: config.segmentTableName,
+        AttributeDefinitions: [
+          {
+            AttributeName: "flowId",
+            AttributeType: "S",
+          },
+          {
+            AttributeName: "objectId",
+            AttributeType: "S",
+          },
+        ],
+        KeySchema: [
+          {
+            AttributeName: "flowId",
+            KeyType: "HASH",
+          },
+          {
+            AttributeName: "objectId",
+            KeyType: "RANGE",
+          },
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+      })
+    );
+  });
+
   await ensureTableExists(
     client,
     config.flowDeleteRequestsTableName,
