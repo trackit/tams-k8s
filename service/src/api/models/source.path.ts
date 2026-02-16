@@ -6,6 +6,10 @@ export interface GetSourcePathParams {
   sourceId: string;
 }
 
+export interface DeleteSourcePathParams {
+  sourceId: string;
+}
+
 // Tags
 export interface GetSourceTagsPathParams {
   sourceId: string;

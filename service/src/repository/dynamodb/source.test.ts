@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, test } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { FormatUrn, SourceMother } from "../../api";
 import { SourceRepository } from "../../repository";
 import { clearDynamoTable, DynamoDBTestContainer } from "../../utils";
@@ -41,14 +41,14 @@ describe("Testing Sources DynamoDB repository", () => {
     if (dynamoContainer) await dynamoContainer.stop();
   });
 
-  test("should return an empty list if no source is found", async () => {
+  it("should return an empty list if no source is found", async () => {
     const response = await sourceRepository.listSources();
 
     expect(response.sources).toEqual([]);
   });
 
   describe("all sources", () => {
-    test("should return all sources", async () => {
+    it("should return all sources", async () => {
       const s1 = SourceMother.created().withId("11111111-1111-1111-1111-111111111111").build();
       const s2 = SourceMother.created().withId("22222222-2222-2222-2222-222222222222").build();
       const s3 = SourceMother.created().withId("33333333-3333-3333-3333-333333333333").build();
@@ -61,7 +61,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response.sources).toHaveLength(3);
     });
 
-    test("should filter by label", async () => {
+    it("should filter by label", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("camera-1")
@@ -81,7 +81,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response.sources[0].id).toBe("11111111-1111-1111-1111-111111111111");
     });
 
-    test("should filter by format", async () => {
+    it("should filter by format", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -101,7 +101,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response.sources[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
-    test("should filter by tag", async () => {
+    it("should filter by tag", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ tag: "test" })
@@ -129,7 +129,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(ids).toHaveLength(2);
     });
 
-    test("should filter correctly using haveTags and doesNotHaveTags", async () => {
+    it("should filter correctly using haveTags and doesNotHaveTags", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ tag: "test" })
@@ -156,7 +156,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response.sources[0].id).toBe("11111111-1111-1111-1111-111111111111");
     });
 
-    test("should filter with combined: format + tag", async () => {
+    it("should filter with combined: format + tag", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -186,7 +186,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response.sources[0].id).toBe("22222222-2222-2222-2222-222222222222");
     });
 
-    test("should return only {limit} sources and NextKey should point to correct source", async () => {
+    it("should return only {limit} sources and NextKey should point to correct source", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withFormat(FormatUrn.IMAGE)
@@ -238,7 +238,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(secondPage.nextPageToken).toBeUndefined();
     });
 
-    test("should throw InvalidPageTokenError for invalid page token", async () => {
+    it("should throw InvalidPageTokenError for invalid page token", async () => {
       await expect(
         sourceRepository.listSources({
           page: "%%%INVALID%%%",
@@ -248,13 +248,13 @@ describe("Testing Sources DynamoDB repository", () => {
   });
 
   describe("source by id", () => {
-    test("should return null if source doesn't exist", async () => {
+    it("should return null if source doesn't exist", async () => {
       const response = await sourceRepository.getSourceById("fcbef7e2-a6b2-486d-8f4e-a408504afcf9");
 
       expect(response).toBeNull();
     });
 
-    test("should return the source if present", async () => {
+    it("should return the source if present", async () => {
       await sourceRepository.putSource(
         SourceMother.created()
           .withId("11111111-1111-1111-1111-111111111111")
@@ -267,14 +267,36 @@ describe("Testing Sources DynamoDB repository", () => {
     });
   });
 
+  describe("delete source", () => {
+    it("should return false if source doesn't exist", async () => {
+      const response = await sourceRepository.deleteSource("06752034-9268-45c9-9c59-52e4c2f73dc8");
+
+      expect(response).toBe(false);
+    });
+
+    it("should delete a source", async () => {
+      await sourceRepository.putSource(
+        SourceMother.created()
+          .withId("11111111-1111-1111-1111-111111111111")
+          .build(),
+      );
+
+      const response = await sourceRepository.deleteSource("11111111-1111-1111-1111-111111111111");
+
+      expect(response).toBe(true);
+      const currentSource = await sourceRepository.getSourceById("11111111-1111-1111-1111-111111111111");
+      expect(currentSource).toBeNull();
+    });
+  });
+
   describe("source descriptions", () => {
-    test("should return null if the requested source doesn't exist", async () => {
+    it("should return null if the requested source doesn't exist", async () => {
       const response = await sourceRepository.getSourceById("00000000-0000-0000-0000-000000000000");
 
       expect(response).toBeNull();
     });
 
-    test("should return the description of the requested source", async () => {
+    it("should return the description of the requested source", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Description for testing purpose")
@@ -286,7 +308,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.description).toBe("Description for testing purpose");
     });
 
-    test("should update the description of the requested source", async () => {
+    it("should update the description of the requested source", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Original description")
@@ -300,7 +322,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(updated?.description).toBe("Updated description for testing");
     });
 
-    test("should delete the description of the requested source", async () => {
+    it("should delete the description of the requested source", async () => {
       const s1 = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withDescription("Description to be deleted")
@@ -316,13 +338,13 @@ describe("Testing Sources DynamoDB repository", () => {
   });
 
   describe("source label", () => {
-    test("should return null if the requested source doesn't exist", async () => {
+    it("should return null if the requested source doesn't exist", async () => {
       const response = await sourceRepository.getSourceById("00000000-0000-0000-0000-000000000000");
 
       expect(response).toBeNull();
     });
 
-    test("should return the label of the requested source", async () => {
+    it("should return the label of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Testing")
@@ -334,7 +356,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.label).toBe("Testing");
     });
 
-    test("should update the label of the requested source", async () => {
+    it("should update the label of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Original label")
@@ -348,7 +370,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(updated?.label).toBe("Updated label");
     });
 
-    test("should delete the label of the requested source", async () => {
+    it("should delete the label of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel("Label to be deleted")
@@ -362,7 +384,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.label).toBeUndefined();
     });
 
-    test("should return undefined if the requested source doesn't have a label", async () => {
+    it("should return undefined if the requested source doesn't have a label", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withLabel(undefined)
@@ -376,13 +398,13 @@ describe("Testing Sources DynamoDB repository", () => {
   });
 
   describe("source tags", () => {
-    test("should return null if the requested source doesn't exist", async () => {
+    it("should return null if the requested source doesn't exist", async () => {
       const response = await sourceRepository.getSourceById("00000000-0000-0000-0000-000000000000");
 
       expect(response).toBeNull();
     });
 
-    test("should return the tags of the requested source", async () => {
+    it("should return the tags of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -397,7 +419,7 @@ describe("Testing Sources DynamoDB repository", () => {
       });
     });
 
-    test("should return the value of a specific tag for string", async () => {
+    it("should return the value of a specific tag for string", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -409,7 +431,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.tags?.tag).toBe("test");
     });
 
-    test("should return the value of a specific tag for array of string", async () => {
+    it("should return the value of a specific tag for array of string", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -421,7 +443,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.tags?.key).toEqual(["value1", "value2"]);
     });
 
-    test("should return undefined if the value of a specific tag doesn't exist", async () => {
+    it("should return undefined if the value of a specific tag doesn't exist", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -433,7 +455,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(response?.tags?.unknown).toBeUndefined();
     });
 
-    test("should create the tag for the requested source", async () => {
+    it("should create the tag for the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })
@@ -447,7 +469,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(updated?.tags?.new).toBe("newTag");
     });
 
-    test("should update the tag of the requested source", async () => {
+    it("should update the tag of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ existing: "original" })
@@ -461,7 +483,7 @@ describe("Testing Sources DynamoDB repository", () => {
       expect(updated?.tags?.existing).toBe("updated");
     });
 
-    test("should delete the tag of the requested source", async () => {
+    it("should delete the tag of the requested source", async () => {
       const s = SourceMother.created()
         .withId("11111111-1111-1111-1111-111111111111")
         .withTags({ key: ["value1", "value2"], tag: "test" })

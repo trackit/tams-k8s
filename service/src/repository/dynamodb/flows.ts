@@ -1,6 +1,7 @@
 import {
   AttributeValue,
   CreateTableCommand,
+  DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -263,5 +264,21 @@ export class DDBFlowsRepository implements FlowRepository {
       })
     );
     return flow;
+  }
+
+  async deleteFlow(flowId: string): Promise<boolean> {
+    const flow = await this.getFlowById(flowId);
+    if (!flow) return false;
+    if (flow.readOnly) return false;
+
+    await this.client.send(
+      new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: {
+          flowId: { S: flowId },
+        },
+      })
+    );
+    return true;
   }
 }

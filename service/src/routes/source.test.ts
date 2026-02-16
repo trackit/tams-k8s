@@ -271,6 +271,46 @@ describe("Testing Sources routes using memory repository", () => {
     });
   });
 
+  describe("delete source tests", () => {
+    it("should return a validation error if sourceId is not uuid", async () => {
+      const { app } = setup();
+
+      const response = await request(app).delete("/sources/not-uuid");
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        message: 'ValidationError: "sourceId" must be a valid GUID',
+        type: "validation_error",
+        where: "params",
+      });
+    });
+
+    it("should return 404 if source doesn't exist", async () => {
+      const { app } = setup();
+      const sourceId = "06752034-9268-45c9-9c59-52e4c2f73dc8";
+
+      const response = await request(app).delete(`/sources/${sourceId}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        message: "Not found: Source could not be found",
+        type: "not_found",
+      });
+    });
+
+    it("should delete a source", async () => {
+      const { app, sourceRepository } = setup();
+      const source = SourceMother.created().build();
+      await sourceRepository.putSource(source);
+
+      const response = await request(app).delete(`/sources/${source.id}`);
+
+      expect(response.status).toBe(204);
+      const currentSource = await sourceRepository.getSourceById(source.id);
+      expect(currentSource).toBeNull();
+    });
+  });
+
   describe("source descriptions", () => {
     it("should return 404 if the requested source doesn't exist", async () => {
       const { app } = setup();

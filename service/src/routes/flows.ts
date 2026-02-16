@@ -195,16 +195,14 @@ export class FlowsRoutes extends Routes {
     req: ValidatedRequest<ParamsSchema<DeleteFlowPathParams>>,
     res: Response<void>
   ) {
-    if (req.params.flowId !== req.body.id)
-      throw new BadRequestHttpError("flow ID does not match URL parameter");
-    const currentflow = await this.repository.getFlowById(req.params.flowId);
+    const currentFlow = await this.repository.getFlowById(req.params.flowId);
 
-    if (currentflow === null) 
+    if (currentFlow === null) 
       throw new NotFoundHttpError("Flow could not be found");
-    if (currentflow.readOnly === true)
+    if (currentFlow.readOnly === true)
       throw new ForbiddenHttpError("Flow is in read only mode");
 
-    await this.repository.deleteFlow(currentflow.flowId);
+    await this.repository.deleteFlow(currentFlow.flowId);
     res.sendStatus(204);
   }
 }

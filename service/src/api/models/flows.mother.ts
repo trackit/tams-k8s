@@ -1,4 +1,6 @@
 import { Flow, VideoFlow, FormatUrn } from '@tams-k8s/api';
+import { FlowAdapter } from '../../repository/adapters/flow.adapter';
+import { Flow as RepositoryFlow } from '../../repository/flows';
 
 export class ApiFlowMother {
     private readonly flow: Flow;
@@ -72,8 +74,11 @@ export class ApiFlowMother {
         return this.flow;
     }
 
+    buildRepoFlow(): RepositoryFlow {
+        return FlowAdapter.fromApi(this.flow);
+    }
+
     constructor(flow: Flow) {
         this.flow = flow;
     }
 }
-

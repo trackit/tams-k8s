@@ -1,6 +1,7 @@
 import {
   AttributeValue,
   CreateTableCommand,
+  DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -210,5 +211,20 @@ export class DDBSourcesRepository implements SourceRepository {
       })
     );
     return source;
+  }
+
+  async deleteSource(sourceId: string): Promise<boolean> {
+    const source = await this.getSourceById(sourceId);
+    if (!source) return false;
+
+    await this.client.send(
+      new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: {
+          id: { S: sourceId },
+        },
+      })
+    );
+    return true;
   }
 }
