@@ -17,21 +17,29 @@ By contributing code to TAMS on Kubernetes, you warrant that you either have the
 
 ### Setting Up the Development Environment
 
-1. Clone the repository:
+1. **Fork the repository** on GitHub (via the "Fork" button on the project page).
+
+2. Clone your fork (replace `YOUR_USERNAME` with your GitHub username):
 
 ```bash
-git clone https://github.com/trackit/tams-k8s.git
+git clone https://github.com/YOUR_USERNAME/tams-k8s.git
 cd tams-k8s
 ```
 
-2. For the Kubernetes controller:
+3. (Optional) Add the upstream remote to sync with the main repository:
+
+```bash
+git remote add upstream https://github.com/trackit/tams-k8s.git
+```
+
+4. For the Kubernetes controller:
 
 ```bash
 cd k8s-controller
 go mod download
 ```
 
-3. For the service:
+5. For the service:
 
 ```bash
 cd service
@@ -42,9 +50,12 @@ npm install
 
 ### Making Changes
 
-1. Create a new branch from `master`:
+1. Ensure your fork is up to date with `upstream/master`, then create a new branch from `master`:
 
 ```bash
+git fetch upstream
+git checkout master
+git merge upstream/master
 git checkout -b feature/your-feature-name
 ```
 
@@ -57,7 +68,7 @@ git checkout -b feature/your-feature-name
 
 4. Commit your changes with clear, descriptive commit messages
 
-5. Push your branch and create a Pull Request
+5. Push your branch to your fork and open a Pull Request against the main repository (`trackit/tams-k8s`)
 
 ### Coding Standards
 
@@ -79,17 +90,24 @@ git checkout -b feature/your-feature-name
 ### Commit Messages
 
 - Use clear, descriptive commit messages
-- Start with a verb in imperative mood following by ": " (e.g., "Add: ", "Fix: ", "Update: ")
+- Use conventional commit prefixes: `feat:`, `fix:`, `docs:`, `refactor:`, etc., followed by a short description
 - Keep the first line under 72 characters
-- Add a detailed description if needed
+- Add a detailed description in the body if needed
 
-Example:
+Examples:
 
 ```
-Add: validation for Store CRD
+feat: Add segments endpoint
+```
 
-This change adds validation logic to ensure Store resources
-have required fields before processing.
+```
+fix: Segments not found error
+```
+
+```
+feat: Add validation for Store CRD
+
+This change adds validation logic to ensure Store resources have required fields before processing.
 ```
 
 ## Pull Request Process
