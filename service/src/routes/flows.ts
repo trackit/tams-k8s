@@ -27,6 +27,7 @@ import { FlowsReadOnly } from "./flows.readOnly";
 import { FlowsTags } from "./flows.tags";
 import {
   BadRequestHttpError,
+  ConflictHttpError,
   ForbiddenHttpError,
   NotFoundHttpError,
   ParamsBodySchema,
@@ -197,12 +198,17 @@ export class FlowsRoutes extends Routes {
   ) {
     const currentFlow = await this.repository.getFlowById(req.params.flowId);
 
-    if (currentFlow === null) 
+    if (currentFlow === null)
       throw new NotFoundHttpError("Flow could not be found");
     if (currentFlow.readOnly === true)
       throw new ForbiddenHttpError("Flow is in read only mode");
 
-    await this.repository.deleteFlow(currentFlow.flowId);
+    const deleted = await this.repository.deleteFlow(currentFlow.flowId);
+    if (!deleted) {
+      throw new ConflictHttpError(
+        "Flow could not be deleted (flow not found or is read-only)"
+      );
+    }
     res.sendStatus(204);
   }
 }
