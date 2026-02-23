@@ -129,12 +129,9 @@ export class SourcesRoutes extends Routes {
     req: ValidatedRequest<ParamsSchema<DeleteSourcePathParams>>,
     res: Response<void>
   ) {
-    const currentSource = await this.repository.getSourceById(req.params.sourceId);
-
-    if (currentSource === null)
+    const deleted = await this.repository.deleteSource(req.params.sourceId);
+    if (!deleted)
       throw new NotFoundHttpError("Source could not be found");
-
-    await this.repository.deleteSource(currentSource.id);
     res.sendStatus(204);
   }
 }

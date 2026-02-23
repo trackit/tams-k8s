@@ -214,17 +214,17 @@ export class DDBSourcesRepository implements SourceRepository {
   }
 
   async deleteSource(sourceId: string): Promise<boolean> {
-    const source = await this.getSourceById(sourceId);
-    if (!source) return false;
-
-    await this.client.send(
+    const result = await this.client.send(
       new DeleteItemCommand({
         TableName: this.tableName,
         Key: {
           id: { S: sourceId },
         },
+        ReturnValues: "ALL_OLD",
       })
     );
-    return true;
+    return (
+      result.Attributes != null && Object.keys(result.Attributes).length > 0
+    );
   }
 }
