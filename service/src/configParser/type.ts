@@ -5,6 +5,7 @@ export interface DynamoDBConfig {
     serviceTableName: string;
     sourceTableName: string;
     mediaObjectTableName: string;
+    flowDeleteRequestsTableName: string;
     region?: string;
     endpoint?: string;
 }
@@ -28,7 +29,11 @@ export interface S3BackendConfig extends CommonBackendConfig {
     endpoint?: string;
 }
 
-export type BackendConfig = S3BackendConfig;
+export interface MemoryBackendConfig extends CommonBackendConfig {
+    type: 'memory';
+}
+
+export type BackendConfig = S3BackendConfig | MemoryBackendConfig;
 
 // Log config
 export interface LogConfig {

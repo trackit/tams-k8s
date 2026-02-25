@@ -9,3 +9,6 @@ service/coverage
 
 secret.yaml
 .prettierrc
+
+**/.DS_Store
+.DS_Store

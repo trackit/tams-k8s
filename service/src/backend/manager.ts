@@ -1,3 +1,4 @@
+import { createInjectionToken } from "../di";
 import { BackendConfig } from "../configParser";
 import { Backend } from "./backend";
 import { S3BackendImpl } from "./s3/backend";
@@ -22,6 +23,12 @@ export class BackendManager {
                     this.backendMap[config.id] = instance;
                     if (config.default) {
                         this.backendDefault = instance;
+                    }
+                    break;
+                case 'memory':
+                    const instanceMemory = {}
+                    if (config.default) {
+                      this.backendDefault = instanceMemory as Backend;
                     }
                     break;
             }
@@ -51,3 +58,5 @@ export class BackendManager {
         return this.backendList;
     }
 }
+
+export const backendManagerToken = createInjectionToken<BackendManager>('BackendManager');

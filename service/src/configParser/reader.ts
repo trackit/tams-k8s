@@ -111,6 +111,10 @@ export class ConfigReader {
                     serviceTableName: this.parseKey(['database', 'serviceTableName']),
                     sourceTableName: this.parseKey(['database', 'sourceTableName']),
                     mediaObjectTableName: this.parseKey(['database', 'mediaObjectTableName']),
+                    flowDeleteRequestsTableName: this.parseKey([
+                        'database',
+                        'flowDeleteRequestsTableName',
+                    ]),
                     region: this.parseKey(['database', 'region']),
                     endpoint: this.parseKey(['database', 'endpoint']),
                 };
