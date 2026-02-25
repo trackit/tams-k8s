@@ -185,6 +185,8 @@ The `Store` custom resource describes the desired configuration of a TAMS instan
 | mediaObjectTableName       | yes            | string | DynamoDB table for media objects        |
 | endpoint                   | no             | string | Custom database endpoint                |
 
+**Manual table creation:** If you prefer to manage tables yourself, see [Database setup](docs/database/README.md). The guide [DynamoDB – Manual table creation](docs/database/dynamodb.md) describes the required table names, key schema, indexes, and how to create tables via AWS CLI, Terraform, or CloudFormation so the service can run without auto-creation.
+
 ### Backend Configuration
 
 | Field      | Required | Type          | Description               |
