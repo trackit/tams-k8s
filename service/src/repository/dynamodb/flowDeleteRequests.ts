@@ -1,6 +1,7 @@
 import {
   AttributeValue,
   CreateTableCommand,
+  DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -150,6 +151,23 @@ export class DDBFlowDeleteRequestsRepository
         ReturnValues: "NONE",
         Item: this.flowDeleteRequestToRecord(flowDeleteRequest),
       })
+    );
+  }
+
+  async deleteFlowDeleteRequest(requestId: string): Promise<boolean> {
+    const result = await this.client.send(
+      new DeleteItemCommand({
+        TableName: this.tableName,
+        Key: {
+          id: {
+            S: requestId,
+          },
+        },
+        ReturnValues: "ALL_OLD",
+      })
+    );
+    return (
+      result.Attributes != null && Object.keys(result.Attributes).length > 0
     );
   }
 }

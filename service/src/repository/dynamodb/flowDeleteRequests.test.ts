@@ -127,4 +127,37 @@ describe("Testing DynamoDB repository", () => {
       });
     });
   });
+
+  describe("delete flowDeleteRequest", () => {
+    test("should return false if delete-request doesn't exist", async () => {
+      const result =
+        await flowDeleteRequestRepository.deleteFlowDeleteRequest(
+          "fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
+        );
+
+      expect(result).toBe(false);
+    });
+
+    test("should return true and remove the flowDeleteRequest if present", async () => {
+      await flowDeleteRequestRepository.saveFlowDeleteRequest(
+        FlowDeleteRequestMother.created()
+          .withId("d4e5f6a7-b8c9-4012-d234-567890123456")
+          .withTimerangeToDelete("0:0_")
+          .build()
+      );
+
+      const result =
+        await flowDeleteRequestRepository.deleteFlowDeleteRequest(
+          "d4e5f6a7-b8c9-4012-d234-567890123456"
+        );
+
+      expect(result).toBe(true);
+
+      const getResponse =
+        await flowDeleteRequestRepository.getFlowDeleteRequestById(
+          "d4e5f6a7-b8c9-4012-d234-567890123456"
+        );
+      expect(getResponse).toBe(null);
+    });
+  });
 });

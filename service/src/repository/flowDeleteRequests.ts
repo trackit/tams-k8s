@@ -7,6 +7,7 @@ export interface FlowDeleteRequestsRepository {
     flowDeleteRequestId: string
   ): Promise<FlowDeleteRequest | null>;
   saveFlowDeleteRequest(flowDeleteRequest: FlowDeleteRequest): Promise<void>;
+  deleteFlowDeleteRequest(requestId: string): Promise<boolean>;
 }
 
 export const flowDeleteRequestsRepositoryToken =

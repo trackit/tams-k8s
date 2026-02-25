@@ -95,4 +95,101 @@ describe("Testing using memory repository", () => {
       });
     });
   });
+
+  describe("post flowDeleteRequest", () => {
+    it("should create a flow delete request and return 201", async () => {
+      const { app } = setup();
+      const body = FlowDeleteRequestMother.created()
+        .withId("a1b2c3d4-e5f6-4789-a012-345678901234")
+        .withFlowId("b2c3d4e5-f6a7-4890-b123-456789012345")
+        .withTimerangeToDelete("0:10_")
+        .withDeleteFlow(true)
+        .build();
+
+      const response = await request(app)
+        .post("/flow-delete-requests")
+        .send(body);
+
+      expect(response.status).toBe(201);
+      expect(response.body).toMatchObject({
+        id: "a1b2c3d4-e5f6-4789-a012-345678901234",
+        flowId: "b2c3d4e5-f6a7-4890-b123-456789012345",
+        timerangeToDelete: "0:10_",
+        deleteFlow: true,
+        status: "created",
+      });
+      expect(response.body.created).toBeDefined();
+      expect(response.body.updated).toBeDefined();
+
+      const getResponse = await request(app).get(
+        "/flow-delete-requests/a1b2c3d4-e5f6-4789-a012-345678901234"
+      );
+      expect(getResponse.status).toBe(200);
+      expect(getResponse.body.id).toBe(body.id);
+    });
+
+    it("should return validation error if body is invalid", async () => {
+      const { app } = setup();
+      const response = await request(app)
+        .post("/flow-delete-requests")
+        .send({
+          id: "not-a-uuid",
+          flowId: "b2c3d4e5-f6a7-4890-b123-456789012345",
+          timerangeToDelete: "0:10_",
+          deleteFlow: false,
+          status: "created",
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.type).toBe("validation_error");
+      expect(response.body.where).toBe("body");
+    });
+  });
+
+  describe("delete flowDeleteRequest", () => {
+    it("should return 400 if requestId is not a valid UUID", async () => {
+      const { app } = setup();
+      const response = await request(app).delete(
+        "/flow-delete-requests/not-a-valid-uuid"
+      );
+
+      expect(response.status).toBe(400);
+      expect(response.body.type).toBe("validation_error");
+      expect(response.body.where).toBe("params");
+    });
+
+    it("should return 404 if delete-request doesn't exist", async () => {
+      const { app } = setup();
+      const response = await request(app).delete(
+        "/flow-delete-requests/fcbef7e2-a6b2-486d-8f4e-a408504afcf9"
+      );
+
+      expect(response.status).toBe(404);
+      expect(response.body).toMatchObject({
+        message: "Not found: Flow delete request not found",
+        type: "not_found",
+      });
+    });
+
+    it("should return 204 and remove the flowDeleteRequest if present", async () => {
+      const { app, flowDeleteRequestRepository } = setup();
+      await flowDeleteRequestRepository.saveFlowDeleteRequest(
+        FlowDeleteRequestMother.created()
+          .withId("d4e5f6a7-b8c9-4012-d234-567890123456")
+          .withTimerangeToDelete("0:0_")
+          .build()
+      );
+
+      const response = await request(app).delete(
+        "/flow-delete-requests/d4e5f6a7-b8c9-4012-d234-567890123456"
+      );
+
+      expect(response.status).toBe(204);
+
+      const getResponse = await request(app).get(
+        "/flow-delete-requests/d4e5f6a7-b8c9-4012-d234-567890123456"
+      );
+      expect(getResponse.status).toBe(404);
+    });
+  });
 });

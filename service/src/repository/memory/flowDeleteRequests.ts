@@ -32,4 +32,13 @@ export class MemoryFlowDeleteRequestsRepository
   async saveFlowDeleteRequest(flowDeleteRequest: FlowDeleteRequest) {
     this.flowDeleteRequests.push(flowDeleteRequest);
   }
+
+  async deleteFlowDeleteRequest(requestId: string): Promise<boolean> {
+    const index = this.flowDeleteRequests.findIndex(
+      ({ id }) => id === requestId
+    );
+    if (index === -1) return false;
+    this.flowDeleteRequests.splice(index, 1);
+    return true;
+  }
 }
