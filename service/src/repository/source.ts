@@ -1,9 +1,10 @@
 import { FormatUrn } from "@tams-k8s/api";
+import { createInjectionToken } from "../di";
 
 export interface ListSourcesFilters {
   format?: string;
   label?: string;
-  tags?: Record<string, string>;
+  tags?: Record<string, string | string[]>;
   haveTags?: string[];
   doesNotHaveTags?: string[];
   page?: string;
@@ -43,3 +44,6 @@ export interface SourceRepository {
   getSourceById(sourceId: string): Promise<Source | null>;
   putSource(source: Source): Promise<Source>;
 }
+
+export const sourceRepositoryToken =
+  createInjectionToken<SourceRepository>("SourceRepository");

@@ -1,14 +1,13 @@
-import { MediaObject } from '../mediaObjects';
 import type {
   ListSourcesFilters,
   Source,
   SourceRepository,
   ListSourcesResponse,
-} from "../source";
+} from "../index";
 import Joi from "joi";
 import { InvalidPageTokenError } from "../errors";
 
-export class MemorySourceImpl implements SourceRepository {
+export class MemorySourceRepository implements SourceRepository {
   private readonly sources: Source[];
 
   constructor(initialSources?: Source[]) {
@@ -30,7 +29,7 @@ export class MemorySourceImpl implements SourceRepository {
   }
 
   getInternal(): Source[] {
-      return this.sources;
+    return this.sources;
   }
 
   async listSources(
@@ -56,7 +55,25 @@ export class MemorySourceImpl implements SourceRepository {
 
       if (tags) {
         filteredSources = filteredSources.filter((s) =>
-          Object.entries(tags).every(([key, value]) => s.tags?.[key] === value)
+          Object.entries(tags).every(([key, value]) => {
+            const sourceValue = s.tags?.[key];
+
+            if (!sourceValue) return false;
+
+            if (typeof value === "string") {
+              if (typeof sourceValue === "string") return sourceValue === value;
+              return sourceValue.includes(value);
+            }
+
+            if (Array.isArray(value)) {
+              const srcArray = Array.isArray(sourceValue)
+                ? sourceValue
+                : [sourceValue];
+              return value.every((v) => srcArray.includes(v));
+            }
+
+            return false;
+          })
         );
       }
 
