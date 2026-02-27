@@ -1,0 +1,209 @@
+# Contributing to TAMS on Kubernetes
+
+Thank you for your interest in contributing to TAMS Kubernetes! This document provides guidelines and instructions for contributing to the project.
+
+## License
+
+By contributing code to TAMS on Kubernetes, you warrant that you either have the rights to your contributions or have obtained the necessary permissions to license them under the [repository license](./LICENSE), ensuring that your code can be legally distributed under these terms.
+
+## Getting Started
+
+### Prerequisites
+
+- Go 1.25.1 or later (for the Kubernetes controller)
+- Node.js and npm (for the service)
+- kubectl configured to access a Kubernetes cluster
+- Docker (for building container images)
+
+### Setting Up the Development Environment
+
+1. **Fork the repository** on GitHub (via the "Fork" button on the project page).
+
+2. Clone your fork (replace `YOUR_USERNAME` with your GitHub username):
+
+```bash
+git clone https://github.com/YOUR_USERNAME/tams-k8s.git
+cd tams-k8s
+```
+
+3. (Optional) Add the upstream remote to sync with the main repository:
+
+```bash
+git remote add upstream https://github.com/trackit/tams-k8s.git
+```
+
+4. For the Kubernetes controller:
+
+```bash
+cd k8s-controller
+go mod download
+```
+
+5. For the service:
+
+```bash
+cd service
+npm install
+```
+
+## Development Workflow
+
+### Making Changes
+
+1. Ensure your fork is up to date with `upstream/master`, then create a new branch from `master`:
+
+```bash
+git fetch upstream
+git checkout master
+git merge upstream/master
+git checkout -b feature/your-feature-name
+```
+
+2. Make your changes following the coding standards below
+
+3. Test your changes:
+
+   - For Go code: Run tests with `go test ./...`
+   - For TypeScript code: Run tests with `npm test`
+
+4. Commit your changes with clear, descriptive commit messages
+
+5. Push your branch to your fork and open a Pull Request against the main repository (`trackit/tams-k8s`)
+
+### Coding Standards
+
+#### Go (Kubernetes Controller)
+
+- Follow the [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
+- Use `gofmt` to format your code
+- Run `go vet ./...` before committing
+- Add unit tests for new functionality
+- Update generated code using the provided scripts in `hack/`
+
+#### TypeScript (Service)
+
+- Use TypeScript strict mode
+- Add tests for new routes and functionality
+- Run `npm run build` to ensure the code compiles
+- Use meaningful variable and function names
+
+### Commit Messages
+
+- Use clear, descriptive commit messages
+- Use conventional commit prefixes: `feat:`, `fix:`, `docs:`, `refactor:`, etc., followed by a short description
+- Keep the first line under 72 characters
+- Add a detailed description in the body if needed
+
+Examples:
+
+```
+feat: Add segments endpoint
+```
+
+```
+fix: Segments not found error
+```
+
+```
+feat: Add validation for Store CRD
+
+This change adds validation logic to ensure Store resources have required fields before processing.
+```
+
+## Pull Request Process
+
+1. Ensure your code follows the project's coding standards
+2. Update documentation if you've changed functionality
+3. Add or update tests as needed
+4. Ensure all tests pass
+5. Request review from maintainers
+6. Address any feedback from reviewers
+7. Once approved, a maintainer will merge your PR
+
+### PR Checklist
+
+- Code follows the project's style guidelines
+- Self-review completed
+- Comments added for complex code
+- Documentation updated
+- Tests added/updated
+- All tests pass
+- No new warnings introduced
+
+## Testing
+
+### Kubernetes Controller
+
+Run the test suite:
+
+```bash
+cd k8s-controller
+go test ./...
+```
+
+Run with coverage:
+
+```bash
+go test -cover ./...
+```
+
+### Service
+
+Run the test suite:
+
+```bash
+cd service
+npm test
+```
+
+Run with UI and coverage:
+
+```bash
+npm run test:ui
+```
+
+## Building and Deploying
+
+### Building the Controller
+
+```bash
+cd k8s-controller
+docker build -t tams-controller:latest .
+```
+
+### Building the Service
+
+```bash
+cd service
+npm run build
+docker build -t tams-service:latest .
+```
+
+## Reporting Issues
+
+When reporting issues, please include:
+
+- Description of the issue
+- Steps to reproduce
+- Expected behavior
+- Actual behavior
+- Environment details (Kubernetes version, Go version, etc.)
+- Relevant logs or error messages
+
+## Feature Requests
+
+For feature requests, please:
+
+- Check if the feature has already been requested
+- Provide a clear description of the feature
+- Explain the use case and benefits
+- Consider implementation complexity
+
+## Questions?
+
+If you have questions, feel free to:
+
+- Open an issue for discussion
+- Contact the maintainers
+
+Thank you for contributing to TAMS on Kubernetes!
