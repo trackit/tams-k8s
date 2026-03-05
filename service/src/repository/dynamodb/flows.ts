@@ -1,6 +1,7 @@
 import {
   AttributeValue,
   CreateTableCommand,
+  DeleteItemCommand,
   DynamoDBClient,
   GetItemCommand,
   PutItemCommand,
@@ -263,5 +264,33 @@ export class DDBFlowsRepository implements FlowRepository {
       })
     );
     return flow;
+  }
+
+  async deleteFlow(flowId: string): Promise<boolean> {
+    try {
+      await this.client.send(
+        new DeleteItemCommand({
+          TableName: this.tableName,
+          Key: {
+            flowId: { S: flowId },
+          },
+          ConditionExpression:
+            "attribute_exists(flowId) AND (attribute_not_exists(#ro) OR #ro = :false)",
+          ExpressionAttributeNames: { "#ro": "readOnly" },
+          ExpressionAttributeValues: { ":false": { BOOL: false } },
+        })
+      );
+      return true;
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "name" in err &&
+        (err as { name: string }).name === "ConditionalCheckFailedException"
+      ) {
+        return false;
+      }
+      throw err;
+    }
   }
 }

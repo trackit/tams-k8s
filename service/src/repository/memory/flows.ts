@@ -140,4 +140,15 @@ export class MemoryFlowsRepository implements FlowRepository {
     }
     return flow;
   }
+
+  async deleteFlow(flowId: string): Promise<boolean> {
+    const indexToDelete = this.flows.findIndex(
+      ({ flowId: findFlowId }) => findFlowId === flowId
+    );
+    if (indexToDelete === -1) return false;
+    const flow = this.flows[indexToDelete];
+    if (flow.readOnly === true) return false;
+    this.flows.splice(indexToDelete, 1);
+    return true;
+  }
 }

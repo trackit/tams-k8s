@@ -11,9 +11,14 @@ import {
   PutSourceLabelPathParams,
   DeleteSourceTagPathParams,
   GetSourceTagPathParams,
+  DeleteSourcePathParams,
 } from "@tams-k8s/api";
 
 export const getSourcePathParamsValidator = Joi.object<GetSourcePathParams>({
+  sourceId: Joi.string().uuid().required(),
+});
+
+export const deleteSourcePathParamsValidator = Joi.object<DeleteSourcePathParams>({
   sourceId: Joi.string().uuid().required(),
 });
 

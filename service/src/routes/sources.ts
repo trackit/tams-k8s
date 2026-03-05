@@ -8,6 +8,8 @@ import {
   getSourcePathParamsValidator,
   GetSourcesQueryParamsRequest,
   listSourcesQueryParamsValidator,
+  DeleteSourcePathParams,
+  deleteSourcePathParamsValidator,
 } from "@tams-k8s/api";
 import { SourcesDescription } from "./sources.description";
 import { SourcesLabel } from "./sources.label";
@@ -46,6 +48,11 @@ export class SourcesRoutes extends Routes {
       validator.params(getSourcePathParamsValidator),
       validator.response(sourceValidator.required()),
       this.getSource.bind(this)
+    );
+    this.route.delete<any, void>(
+      "/:sourceId",
+      validator.params(deleteSourcePathParamsValidator),
+      this.deleteSource.bind(this)
     );
     this.route.use(sourcesDescriptionRoutes.getRoutes());
     this.route.use(sourcesLabelRoutes.getRoutes());
@@ -116,5 +123,15 @@ export class SourcesRoutes extends Routes {
     if (source === null)
       throw new NotFoundHttpError("Source could not be found");
     res.json(SourceAdapter.toApi(source));
+  }
+
+  private async deleteSource(
+    req: ValidatedRequest<ParamsSchema<DeleteSourcePathParams>>,
+    res: Response<void>
+  ) {
+    const deleted = await this.repository.deleteSource(req.params.sourceId);
+    if (!deleted)
+      throw new NotFoundHttpError("Source could not be found");
+    res.sendStatus(204);
   }
 }

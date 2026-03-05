@@ -482,4 +482,60 @@ describe("Testing Flows routes using memory repository", () => {
       expect(updatedFlow?.codec).toBe("video/example");
     });
   });
+
+  describe("delete flow tests", () => {
+    it("should return a validation error if flowId is not uuid", async () => {
+      const { app } = setup();
+
+      const response = await request(app).delete("/flows/not-uuid");
+
+      expect(response.status).toBe(400);
+      expect(response.body).toEqual({
+        message: 'ValidationError: "flowId" must be a valid GUID',
+        type: "validation_error",
+        where: "params",
+      });
+    });
+
+    it("should return 404 if flow doesn't exist", async () => {
+      const { app } = setup();
+      const flowId = "06752034-9268-45c9-9c59-52e4c2f73dc8";
+
+      const response = await request(app).delete(`/flows/${flowId}`);
+
+      expect(response.status).toBe(404);
+      expect(response.body).toEqual({
+        message: "Not found: Flow could not be found",
+        type: "not_found",
+      });
+    });
+
+    it("should not delete a readonly flow", async () => {
+      const { app, flowRepository } = setup();
+      const flow = RepoFlowMother.video().withReadOnly(true).build();
+      await flowRepository.putFlow(flow);
+
+      const response = await request(app).delete(`/flows/${flow.flowId}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toEqual({
+        message: "Forbidden: Flow is in read only mode",
+        type: "forbidden",
+      });
+      const currentFlow = await flowRepository.getFlowById(flow.flowId);
+      expect(currentFlow?.readOnly).toBe(true);
+    });
+
+    it("should delete a flow", async () => {
+      const { app, flowRepository } = setup();
+      const flow = RepoFlowMother.video().build();
+      await flowRepository.putFlow(flow);
+
+      const response = await request(app).delete(`/flows/${flow.flowId}`);
+
+      expect(response.status).toBe(204);
+      const currentFlow = await flowRepository.getFlowById(flow.flowId);
+      expect(currentFlow).toBeNull();
+    });
+  });
 });

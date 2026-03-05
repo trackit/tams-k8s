@@ -153,6 +153,7 @@ export interface FlowRepository {
   listFlows(filters?: ListFlowsFilters): Promise<ListFlowsResponse>;
   getFlowById(flowId: string): Promise<Flow | null>;
   putFlow(flow: Flow): Promise<Flow>;
+  deleteFlow(flowId: string): Promise<boolean>;
 }
 
 export const flowRepositoryToken =

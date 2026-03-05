@@ -6,6 +6,10 @@ export interface GetFlowPathParams {
     flowId: string;
 }
 
+export interface DeleteFlowPathParams {
+    flowId: string;
+}
+
 // Tags
 export interface GetFlowTagsPathParams {
     flowId: string;

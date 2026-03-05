@@ -43,6 +43,7 @@ export interface SourceRepository {
   listSources(filters?: ListSourcesFilters): Promise<ListSourcesResponse>;
   getSourceById(sourceId: string): Promise<Source | null>;
   putSource(source: Source): Promise<Source>;
+  deleteSource(sourceId: string): Promise<boolean>;
 }
 
 export const sourceRepositoryToken =

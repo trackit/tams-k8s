@@ -131,4 +131,14 @@ export class MemorySourceRepository implements SourceRepository {
     }
     return source;
   }
+
+  async deleteSource(sourceId: string): Promise<boolean> {
+    const indexToDelete = this.sources.findIndex(
+      ({ id: findSourceId }) => findSourceId === sourceId
+    );
+    if (indexToDelete === -1)
+      return false;
+    this.sources.splice(indexToDelete, 1);
+    return true;
+  }
 }
