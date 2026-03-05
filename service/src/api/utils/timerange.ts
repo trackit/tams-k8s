@@ -1,5 +1,7 @@
 import { TimerangeInterval, timerangeRegex } from '@tams-k8s/api';
 
+export class TimerangeParsingError extends Error {}
+
 /**
  * Parse a timerange string into a structured interval according to TAMS specification
  * Format: {start inclusivity}{start timestamp}_{end timestamp}{end inclusivity}
@@ -30,7 +32,7 @@ export function parseTimerange(timerange: string): TimerangeInterval | null {
     const nanoseconds = parseInt(nanosecondsStr, 10);
 
     if (isNaN(seconds) || isNaN(nanoseconds)) {
-      throw new Error('Invalid timestamp');
+      throw new TimerangeParsingError('Invalid timestamp');
     }
 
     // Convert to nanoseconds: seconds * 1e9 + nanoseconds
@@ -82,29 +84,26 @@ export function parseTimerange(timerange: string): TimerangeInterval | null {
   }
 
   // Case 4: Range with start and/or end
-  try {
-    // Parse start timestamp or use -Infinity
-    if (firstTimestamp) {
-      start = parseTimestamp(firstTimestamp);
-      startInclusive = (startBracket || '[') === '[';
-    } else {
-      start = -Infinity;
-      startInclusive = true;
-    }
-
-    // Parse end timestamp or use Infinity
-    if (secondTimestamp) {
-      end = parseTimestamp(secondTimestamp);
-      endInclusive = (endBracket || ']') === ']';
-    } else {
-      end = Infinity;
-      endInclusive = true;
-    }
-
-    return { start, end, startInclusive, endInclusive };
-  } catch {
-    return null;
+  // Parse start timestamp or use -Infinity
+  if (firstTimestamp) {
+    start = parseTimestamp(firstTimestamp);
+    startInclusive = (startBracket || '[') === '[';
+  } else {
+    start = -Infinity;
+    startInclusive = true;
   }
+
+  // Parse end timestamp or use Infinity
+  if (secondTimestamp) {
+    end = parseTimestamp(secondTimestamp);
+    endInclusive = (endBracket || ']') === ']';
+  } else {
+    end = Infinity;
+    endInclusive = true;
+  }
+
+  if (start > end) throw new TimerangeParsingError('Start timestamp must be less than end timestamp');
+  return { start, end, startInclusive, endInclusive };
 }
 
 /**

@@ -142,18 +142,14 @@ export class DDBSegmentsRepository implements SegmentRepository {
     // TODO: Implement timerange overlap filtering when PR #27 is merged
     // For now, we'll accept the parameter but not filter by it
     if (filters.timerange) {
-      // Extract start and end from query timerange
-      const match = filters.timerange.match(/(-?\d+):(-?\d+)/);
-      if (match) {
-        const queryStart = parseInt(match[1], 10);
-        const queryEnd = parseInt(match[2], 10);
-
+      const tr = parseTimerange(filters.timerange);
+      if (tr) {
         filterExpr.push(
           "(attribute_exists(timerangeStart) AND attribute_exists(timerangeEnd) AND " +
           "timerangeEnd > :queryStart AND timerangeStart < :queryEnd)"
         );
-        exprAttrVal[":queryStart"] = { N: queryStart.toString() };
-        exprAttrVal[":queryEnd"] = { N: queryEnd.toString() };
+        exprAttrVal[":queryStart"] = { N: tr.start.toString() };
+        exprAttrVal[":queryEnd"] = { N: tr.end.toString() };
       }
     }
 
