@@ -8,6 +8,8 @@ import {
   getSourcePathParamsValidator,
   GetSourcesQueryParamsRequest,
   listSourcesQueryParamsValidator,
+  PutSourcePathParams,
+  putSourcePathParamsValidator,
 } from "@tams-k8s/api";
 import { SourcesDescription } from "./sources.description";
 import { SourcesLabel } from "./sources.label";
@@ -17,6 +19,7 @@ import { Routes } from "./generic";
 import {
   BadRequestHttpError,
   NotFoundHttpError,
+  ParamsBodySchema,
   ParamsSchema,
   QSSchema,
   validator,
@@ -40,12 +43,19 @@ export class SourcesRoutes extends Routes {
       validator.query(listSourcesQueryParamsValidator),
       validator.response(sourcesValidator),
       this.listSources.bind(this)
-    );
+    ); 
     this.route.get<any, Source>(
       "/:sourceId",
       validator.params(getSourcePathParamsValidator),
       validator.response(sourceValidator.required()),
       this.getSource.bind(this)
+    );
+    this.route.put<any, Source>(
+      "/:sourceId",
+      validator.params(putSourcePathParamsValidator),
+      validator.body(sourceValidator.required()),
+      validator.response(sourceValidator.required()),
+      this.putSource.bind(this)
     );
     this.route.use(sourcesDescriptionRoutes.getRoutes());
     this.route.use(sourcesLabelRoutes.getRoutes());
@@ -115,6 +125,19 @@ export class SourcesRoutes extends Routes {
     const source = await this.repository.getSourceById(req.params.sourceId);
     if (source === null)
       throw new NotFoundHttpError("Source could not be found");
+    res.json(SourceAdapter.toApi(source));
+  }
+
+  private async putSource(
+    req: ValidatedRequest<ParamsBodySchema<PutSourcePathParams, Source>>,
+    res: Response<Source>
+  ) {
+    if (req.params.sourceId !== req.body.id)
+      throw new BadRequestHttpError("source ID does not match URL parameter");
+
+    const sourceToPut = SourceAdapter.fromApi(req.body);
+
+    const source = await this.repository.putSource(sourceToPut);
     res.json(SourceAdapter.toApi(source));
   }
 }
