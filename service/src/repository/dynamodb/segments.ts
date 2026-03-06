@@ -74,8 +74,8 @@ export class DDBSegmentsRepository implements SegmentRepository {
       flowId: segment.flowId,
       objectId: segment.objectId,
       timerange: segment.timerange,
-      ...(tr?.start !== undefined && { timerangeStart: tr.start }),
-      ...(tr?.end !== undefined && { timerangeEnd: tr.end }),
+      ...(tr?.start !== undefined && isFinite(tr.start) && { timerangeStart: tr.start }),
+      ...(tr?.end !== undefined && isFinite(tr.end) && { timerangeEnd: tr.end }),
       ...(segment.tsOffset && { tsOffset: segment.tsOffset }),
       ...(segment.lastDuration && { lastDuration: segment.lastDuration }),
       ...(segment.objectTimerange && {
@@ -134,8 +134,10 @@ export class DDBSegmentsRepository implements SegmentRepository {
     const filterExpr: string[] = [];
     const exprAttrVal: Record<string, AttributeValue> = {};
 
+    // Build KeyConditionExpression - objectId is the sort key
+    let keyConditionExpression = "flowId = :flowId";
     if (filters.objectId) {
-      filterExpr.push("objectId = :objectId");
+      keyConditionExpression += " AND objectId = :objectId";
       exprAttrVal[":objectId"] = { S: filters.objectId };
     }
 
@@ -144,12 +146,29 @@ export class DDBSegmentsRepository implements SegmentRepository {
     if (filters.timerange) {
       const tr = parseTimerange(filters.timerange);
       if (tr) {
-        filterExpr.push(
-          "(attribute_exists(timerangeStart) AND attribute_exists(timerangeEnd) AND " +
-          "timerangeEnd > :queryStart AND timerangeStart < :queryEnd)"
-        );
-        exprAttrVal[":queryStart"] = { N: tr.start.toString() };
-        exprAttrVal[":queryEnd"] = { N: tr.end.toString() };
+        const hasFiniteStart = isFinite(tr.start);
+        const hasFiniteEnd = isFinite(tr.end);
+
+        // Only filter if we have at least one finite bound
+        if (hasFiniteStart || hasFiniteEnd) {
+          const conditions: string[] = [
+            "attribute_exists(timerangeStart)",
+            "attribute_exists(timerangeEnd)"
+          ];
+
+          // For overlap: segmentEnd > queryStart AND segmentStart < queryEnd
+          if (hasFiniteStart) {
+            conditions.push("timerangeEnd > :queryStart");
+            exprAttrVal[":queryStart"] = { N: tr.start.toString() };
+          }
+
+          if (hasFiniteEnd) {
+            conditions.push("timerangeStart < :queryEnd");
+            exprAttrVal[":queryEnd"] = { N: tr.end.toString() };
+          }
+
+          filterExpr.push(`(${conditions.join(" AND ")})`);
+        }
       }
     }
 
@@ -166,7 +185,7 @@ export class DDBSegmentsRepository implements SegmentRepository {
     const [error, resp] = await catchError(this.client.send(
       new QueryCommand({
         TableName: this.tableName,
-        KeyConditionExpression: "flowId = :flowId",
+        KeyConditionExpression: keyConditionExpression,
         FilterExpression:
           filterExpr.length === 0 ? undefined : filterExpr.join(" AND "),
         ExpressionAttributeValues: {
